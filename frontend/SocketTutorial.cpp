@@ -4,7 +4,7 @@
 #include "coproto/Socket/BufferingSocket.h"
 #include "tests/Tests.h"
 #include <string>
-#include "ExampleProtocols.h"
+
 using namespace coproto;
 
 namespace {
