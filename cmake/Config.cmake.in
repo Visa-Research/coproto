@@ -1,0 +1,23 @@
+@PACKAGE_INIT@
+
+if(NOT COPROTO_FIND_QUIETLY)
+	message("coprotoConfig.cmake : ${CMAKE_CURRENT_LIST_FILE}")
+endif()
+
+include("${CMAKE_CURRENT_LIST_DIR}/coprotoTargets.cmake")
+
+# compile the library with c++20 support
+set(COPROTO_CPP20 @COPROTO_CPP20@)
+
+# compile the library logging support
+set(COPROTO_LOGGING @COPROTO_LOGGING@) 
+
+set(COPROTO_ENABLE_BOOST @COPROTO_ENABLE_BOOST@)
+set(COPROTO_ENABLE_OPENSSL @COPROTO_ENABLE_OPENSSL@)
+set(COPROTO_CPP_VER @COPROTO_CPP_VER@)
+set(COPROTO_ENABLE_ASSERTS @COPROTO_ENABLE_ASSERTS@)
+
+
+
+
+include("${CMAKE_CURRENT_LIST_DIR}/coprotoFindDeps.cmake")

@@ -1,0 +1,1 @@
+#cmakedefine COPROTO_TEST_DIR "@COPROTO_TEST_DIR@" 

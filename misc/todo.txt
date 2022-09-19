@@ -1,0 +1,40 @@
+- bad recv slot id, fuz the channel.
+- dont close socket on error?
+- alloc in NextSendOp
+- fix SocketError test to output Debug_Error
+- figure out and implement closeFork.
+- revert std_adpater?
+- add resizable, recvAtMost helper functions.
+- missing task14 tests for BufferingSocket.
+
+
+----------
+- improve Work impl to not allocate.
+- tutorial about SID
+- ci for cpp20
+- repeated Option: COPROTO_STAGE = ...
+- issue with async socket. A sender can send "too fast" and then cause a backlog of async sends to pile up. These wont be processed until the main sender thread runs out of other work to be performed (suspends at some later point). This causes the receiver to suspend even though the sender has data that can be sent. Need to investigate what the correct behavior is. Maybe this is just inevitable or maybe not. One possible solution are async-recv's another is a dedicated io thread.
+----------------------------
+
+
+x if the user throws a code::uncaughtException, and theres an active exception, then propegate it.
+x allow exceptions to be retrieved at the top level.
+
+x more multi-socket tests
+x remove scheduler from socket
+x remove slots from socket
+
+x allow empty proto await or no-op proto
+x reduce stack "polution"
+
+x test setting SID
+x allow multiple protocols with the smae SID?
+x generalize .async(x) api to allow other args, eg SessionID
+
+x async send/recv
+
+x allow shared future
+
+x make CoprotoContext<T>::constructAwaiter non-alocating using a SBO
+
+x add warning that switch statements cant be used across
