@@ -349,21 +349,31 @@ namespace coproto
 		}
 
 
-		void AsioSocket_parCancellation_test()
+		void AsioSocket_parCancellation_test(const CLP& cmd)
 		{
 
-			u64 trials = 1000;
+			u64 trials = cmd.getOr("trials",1000);
 			u64 numOps = 20;
 			boost::asio::io_context ioc;
 			optional<boost::asio::io_context::work> w(ioc);
 
-			std::vector<std::thread> thrds(4);
+			std::vector<std::thread> thrds(40);
 			for (auto& t : thrds)
 				t = std::thread([&] {ioc.run(); });
 
+			std::vector<std::vector<i64>> buffers(4);
+			for (auto& b : buffers)
+			{
+				b.resize(numOps);
+				for (auto i = 0ull; i < numOps; ++i)
+					b[i] = i;
+			}
+
+
+			auto s = AsioSocket::makePair();
+
 			for (u64 tt = 0; tt < trials; ++tt)
 			{
-				auto s = AsioSocket::makePair();
 
 				using Log = std::vector<std::pair<const char*, std::thread::id>>;
 
@@ -377,27 +387,43 @@ namespace coproto
 				}
 
 				auto f1 = [&](u64 idx) {
-					MC_BEGIN(task<void>, idx, &numOps, &s, &srcs, &tkns,
+					MC_BEGIN(task<void>, idx, &numOps, &s, &srcs, &tkns, &buffers,
 						v = u64{},
-						i = u64{},
+						i = i64{},
 						buffer = span<u8>{},
 						r = std::pair<error_code, u64>{});
 
-					buffer = span<u8>((u8*)&v, sizeof(v));
+					buffer = span<u8>((u8*)buffers[idx].data(), buffers[idx].size() * sizeof(i64));
 
-					//MC_AWAIT(macoro::transfer_to(ex[idx]));
-					//MC_AWAIT(ex[0].post());
-
-					for (i = 1; i <= numOps; ++i)
+					if (idx < 2)
 					{
+						memset(buffer.data(), 0, buffer.size());
+					}
+
+					while(buffer.size())
+					{
+						++i;
+
 						if (idx == 0) {
-							if (i % 4 == 0)
+
+							// if we are index i % 4 then we will request a stop
+							// on the other end of the socket. Otherwise we will receive
+							// and pass in our stop token.
+							if (i % 4 == 0 && i < numOps)
 							{
+#ifdef COPROTO_ASIO_LOG
+								s[1].mSock->mState->log("request_stop-send " + std::to_string(-i));
+#endif
 								srcs[i][3].request_stop();
 							}
 							else
 							{
-								MC_AWAIT_SET(r, s[0].mSock->recv(buffer, tkns[i][0]));
+								MC_AWAIT_SET(r, s[0].mSock->recv(
+									buffer.subspan(0, std::min<u64>(sizeof(i64), buffer.size())), 
+									i < numOps ? tkns[i][idx] : macoro::stop_token{},
+									-i));
+								buffer = buffer.subspan(r.second);
+
 								//if (i % 4 == 3)
 								//{
 								//	COPROTO_ASSERT(r.first == code::operation_aborted);
@@ -410,13 +436,21 @@ namespace coproto
 						}
 						if (idx == 1)
 						{
-							if (i % 4 == 1)
+							if (i % 4 == 1 && i < numOps)
 							{
+#ifdef COPROTO_ASIO_LOG
+								s[0].mSock->mState->log("request_stop-send " + std::to_string(i));
+#endif
 								srcs[i][2].request_stop();
 							}
 							else
 							{
-								MC_AWAIT_SET(r, s[1].mSock->recv(buffer, tkns[i][1]));
+								MC_AWAIT_SET(r, s[1].mSock->recv(
+									buffer.subspan(0, std::min<u64>(sizeof(i64), buffer.size())),
+									i < numOps ? tkns[i][idx] : macoro::stop_token{},
+									i));
+								buffer = buffer.subspan(r.second);
+
 								//if (i % 4 == 2)
 								//{
 								//	COPROTO_ASSERT(r.first == code::operation_aborted);
@@ -429,14 +463,21 @@ namespace coproto
 						}
 						if (idx == 2)
 						{
-							if (i % 4 == 2)
+							if (i % 4 == 2 && i < numOps)
 							{
+#ifdef COPROTO_ASIO_LOG
+								s[1].mSock->mState->log("request_stop-recv " + std::to_string(i));
+#endif
 								srcs[i][1].request_stop();
 							}
 							else
 							{
-								v = i;
-								MC_AWAIT_SET(r, s[0].mSock->send(buffer, tkns[i][2]));
+								//v = i;
+								MC_AWAIT_SET(r, s[0].mSock->send(
+									buffer.subspan(0, std::min<u64>(sizeof(i64), buffer.size())),
+									i < numOps ? tkns[i][idx] : macoro::stop_token{},
+									i));
+								buffer = buffer.subspan(r.second);
 
 								//if (i % 4 == 1)
 								//{
@@ -447,14 +488,21 @@ namespace coproto
 						if (idx == 3)
 						{
 
-							if (i % 4 == 3)
+							if (i % 4 == 3 && i < numOps)
 							{
+#ifdef COPROTO_ASIO_LOG
+								s[0].mSock->mState->log("request_stop-recv " + std::to_string(-i));
+#endif
 								srcs[i][0].request_stop();
 							}
 							else
 							{
-								v = -i;
-								MC_AWAIT_SET(r, s[1].mSock->send(buffer, tkns[i][3]));
+								//v = -i;
+								MC_AWAIT_SET(r, s[1].mSock->send(
+									buffer.subspan(0, std::min<u64>(sizeof(i64), buffer.size())),
+									i < numOps ? tkns[i][idx] : macoro::stop_token{}, 
+									-i));
+								buffer = buffer.subspan(r.second);
 
 								//if (i % 4 == 0)
 								//{
@@ -462,9 +510,6 @@ namespace coproto
 								//}
 							}
 						}
-
-						//MC_AWAIT(macoro::transfer_to(ex[idx]));
-						//MC_AWAIT(ex[0].post());
 
 					}
 					MC_END();
@@ -485,6 +530,11 @@ namespace coproto
 						t.join();
 					throw;
 				}
+
+				if (!std::equal(buffers[0].begin(), buffers[0].end(), buffers[2].begin()))
+					throw MACORO_RTE_LOC;
+				if (!std::equal(buffers[1].begin(), buffers[1].end(), buffers[3].begin()))
+					throw MACORO_RTE_LOC;
 			}
 
 			w.reset();
