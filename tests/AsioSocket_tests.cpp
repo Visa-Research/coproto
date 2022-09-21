@@ -630,7 +630,7 @@ namespace coproto
 		void AsioSocket_asyncSend_test() { skip(); }
 		void AsioSocket_parSendRecv_test() { skip(); }
 		void AsioSocket_cancellation_test() { skip(); }
-		void AsioSocket_parCancellation_test() { skip(); }
+		void AsioSocket_parCancellation_test(const CLP&) { skip(); }
 		void AsioSocket_close_test() { skip(); }
 #endif
 	}
