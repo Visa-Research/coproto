@@ -20,7 +20,7 @@ namespace coproto
 }
 
 #else
-
+#define span_CONFIG_SELECT_SPAN 1
 #include "nonstd/span.hpp"
 
 namespace coproto
