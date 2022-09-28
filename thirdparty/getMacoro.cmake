@@ -27,7 +27,9 @@ if (NOT MACORO_FOUND
     set(CHECKOUT_CMD  ${GIT} checkout ${GIT_TAG})
     set(CONFIGURE_CMD ${CMAKE_COMMAND} -S ${CLONE_DIR} -B ${BUILD_DIR} -DCMAKE_INSTALL_PREFIX=${CMAKE_INSTALL_PREFIX}
                        -DCMAKE_BUILD_TYPE:STRING=${CMAKE_BUILD_TYPE} -DMACORO_FETCH_AUTO=ON -DVERBOSE_FETCH=${VERBOSE_FETCH} 
-                       -DMACORO_CPP_VER=${COPROTO_CPP_VER})
+                       -DMACORO_CPP_VER=${COPROTO_CPP_VER}
+                       -DMACORO_PIC=${COPROTO_PIC}
+                       )
     set(BUILD_CMD     ${CMAKE_COMMAND} --build ${BUILD_DIR} --config ${CMAKE_BUILD_TYPE})
     set(INSTALL_CMD   ${CMAKE_COMMAND} --install ${BUILD_DIR} --config ${CMAKE_BUILD_TYPE} --prefix ${COPROTO_STAGE})
 
