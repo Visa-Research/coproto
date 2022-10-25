@@ -301,6 +301,10 @@ namespace coproto
         t.add("AsioTlsSocket_Accept_sCacnel_test     ", tests::AsioTlsSocket_Accept_sCacnel_test);
         t.add("AsioTlsSocket_Accept_cCacnel_test     ", tests::AsioTlsSocket_Accept_cCacnel_test);
         
+        t.add("AsioTlsSocket_sendRecv_base_test      ", tests::AsioTlsSocket_sendRecv_base_test);
+        t.add("AsioTlsSocket_sendRecv_test           ", tests::AsioTlsSocket_sendRecv_test);
+        t.add("AsioTlsSocket_parSendRecv_test        ", tests::AsioTlsSocket_parSendRecv_test);
+        
 
         t.add("SocketScheduler_basicSend_test        ", tests::SocketScheduler_basicSend_test);
         t.add("SocketScheduler_basicRecv_test        ", tests::SocketScheduler_basicRecv_test);

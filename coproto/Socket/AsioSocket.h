@@ -21,7 +21,7 @@
 #include <string>
 #include <vector>
 
-//#define COPROTO_ASIO_LOG
+#define COPROTO_ASIO_LOG
 
 namespace coproto
 {
@@ -66,12 +66,73 @@ namespace coproto
 			global_asio_io_context.reset();
 		}
 
+		struct Lifetime
+		{
+			std::unique_ptr<std::atomic<u64>> mCount;
+
+			Lifetime()
+				:mCount(new std::atomic<u64>(0))
+			{}
+
+			Lifetime(Lifetime&&) = default;
+
+
+			~Lifetime()
+			{
+				if (mCount && *mCount != 0)
+					std::terminate();
+			}
+
+			struct Lock
+			{
+				Lifetime* mL = nullptr;
+				Lifetime* mBase = nullptr;
+
+				Lock() = default;
+				Lock(Lock&& o) : mL(std::exchange(o.mL, nullptr)), mBase(o.mBase) {}
+				Lock& operator=(Lock&& o)
+				{
+
+					if (mL)
+					{
+						if ((*mL->mCount)-- == 0)
+							std::terminate();
+					}
+
+					mBase = o.mBase;
+					mL = std::exchange(o.mL, nullptr);
+					return *this;
+				}
+
+				Lock(Lifetime* l)
+					: mL(l)
+					, mBase(l)
+				{
+					++* mL->mCount;
+				}
+
+				~Lock()
+				{
+					if (mL)
+					{
+						if ((*mL->mCount)-- == 0)
+							std::terminate();
+					}
+				}
+			};
+
+			Lock lock() {
+				return this;
+			}
+		};
+
+
 		template<typename SocketType = boost::asio::ip::tcp::socket>
 		struct AsioSocket : public Socket
 		{
 
-			AsioSocket(SocketType&& s, boost::asio::io_context& ioc)
-				: Socket(make_socket_tag{}, Sock(std::move(s), ioc))
+			AsioSocket(SocketType&& s)
+				: Socket(make_socket_tag{}, Sock(std::move(s)))
 			{
 				mSock = (Sock*)Socket::mImpl->getSocket();
 			}
@@ -96,6 +157,8 @@ namespace coproto
 			struct State;
 			struct Sock;
 
+
+
 			struct Awaiter
 			{
 
@@ -108,6 +171,7 @@ namespace coproto
 					, mToken(t)
 					, mCancellationRequested(false)
 					, mSynchronousFlag(false)
+					, mActiveCount()
 #ifdef COPROTO_ASIO_LOG
 					, mLogState(ss->mState)
 					, mIdx(idx)
@@ -136,13 +200,20 @@ namespace coproto
 					, mHandle(a.mHandle)
 					, mCancellationRequested(a.mCancellationRequested.load())
 					, mSynchronousFlag(a.mSynchronousFlag.load())
+					, mActiveCount(std::move(a.mActiveCount))
 					, mToken(std::move(a.mToken))
 					, mReg(std::move(a.mReg))
 #ifdef COPROTO_ASIO_LOG
 					, mLogState(a.mLogState)
 					, mIdx(a.mIdx)
 #endif
-				{}
+				{
+					if (mHandle)
+					{
+						std::cout << "awaiter can not move after being started" << std::endl;
+						std::terminate();
+					}
+				}
 
 				Sock* mSock;
 				span<u8> mData;
@@ -152,6 +223,7 @@ namespace coproto
 				optional<error_code> mEc;
 				boost::asio::cancellation_signal mCancelSignal;
 				std::atomic<bool> mCancellationRequested, mSynchronousFlag;
+				Lifetime mActiveCount;
 
 				coroutine_handle<> mHandle;
 				macoro::stop_token mToken;
@@ -171,7 +243,9 @@ namespace coproto
 					return await_suspend(macoro::coroutine_handle<>(h)).std_cast();
 				}
 #endif
-				void callback(boost::system::error_code ec, std::size_t bt
+				void callback(boost::system::error_code ec, std::size_t bt,
+					Lifetime::Lock lt0,
+					Lifetime::Lock lt1
 					/*, std::shared_ptr<State>& s*/);
 
 				std::pair<error_code, u64> await_resume() {
@@ -186,19 +260,22 @@ namespace coproto
 
 			struct State
 			{
-				State(SocketType&& s, boost::asio::io_context& ioc)
-					: mSock(std::move(s))
-					, mIoc(ioc)
-					, mStrand(ioc)
+				State(SocketType&& s)
+					: mSock_(std::move(s))
+					, mSslLock(false)
 				{
 #ifdef COPROTO_ASIO_LOG
 					log("created");
 #endif
+					
 				}
 
-				SocketType mSock;
-				boost::asio::io_context& mIoc;
-				boost::asio::io_context::strand mStrand;
+				~State()
+				{
+				}
+
+				SocketType mSock_;
+				std::atomic_bool mSslLock;
 
 #ifdef COPROTO_ASIO_LOG
 				std::mutex mLogMutex;
@@ -213,6 +290,7 @@ namespace coproto
 					mLog.push_back(std::move(msg));
 				}
 #endif
+				Lifetime mOpCount;
 			};
 
 
@@ -221,8 +299,8 @@ namespace coproto
 			{
 				std::shared_ptr<State> mState;
 
-				Sock(SocketType&& s, boost::asio::io_context& ioc)
-					: mState(std::make_shared<State>(std::move(s), ioc))
+				Sock(SocketType&& s)
+					: mState(std::make_shared<State>(std::move(s)))
 				{}
 
 				Sock(Sock&&) = default;
@@ -262,8 +340,22 @@ namespace coproto
 		template<typename SocketType>
 		inline void AsioSocket<SocketType>::Sock::close()
 		{
-			mState->mStrand.dispatch([s = mState] {
-				s->mSock.lowest_layer().close();
+
+			
+			boost::asio::dispatch(mState->mSock_.get_executor(),
+				[s = mState, 
+				lt = new Lifetime::Lock(mState->mOpCount.lock())]()mutable{
+
+#ifdef COPROTO_ASIO_LOG
+				s->log("close ");
+#endif
+
+				s->mSock_.lowest_layer().close();
+
+
+				*lt = {};
+				delete lt;
+
 				});
 		}
 
@@ -273,36 +365,48 @@ namespace coproto
 		template<typename SocketType>
 		inline void AsioSocket<SocketType>::Awaiter::callback(
 			boost::system::error_code ec, 
-			std::size_t bytesTrasfered
-			/*, std::shared_ptr<State>& s*/)
+			std::size_t bytesTrasfered,
+			Lifetime::Lock lt0,
+			Lifetime::Lock lt1
+			)
 		{
 			//if (s.use_count() == 1)
 			//{
 			//	throw MACORO_RTE_LOC;
 			//}
-#ifdef COPROTO_ASIO_LOG
-			if (s != mLogState)
-				throw MACORO_RTE_LOC;
-#endif
-
+//#ifdef COPROTO_ASIO_LOG
+//			if (s != mLogState)
+//				throw MACORO_RTE_LOC;
+//#endif
+			//boost::asio::ssl::detail::openssl_init;
 			mBt += bytesTrasfered;
 			{
 				mEc = (ec == boost::asio::error::operation_aborted)
 					? error_code(code::operation_aborted)
 					: error_code(ec);
 
+				lt0 = {};
+				lt1 = {};
+
+
+#ifdef COPROTO_ASIO_LOG
+				auto ss = mLogState;
+				std::stringstream stream;
+				stream << "await_suspend " << (mType == Type::send ?
+					"send " : "recv ") << mIdx << " callback, msg=" + std::to_string(*(i64*)mData.data());
+
+#endif
 				auto f = mSynchronousFlag.exchange(true);
 
 #ifdef COPROTO_ASIO_LOG
-				mLogState->log(std::string("await_suspend ") + (mType == Type::send ?
-					"send " : "recv ") + std::to_string(mIdx) + " callback, f=" + std::to_string(f) +
-					" " + mEc->message() + ", msg=" + std::to_string(*(i64*)mData.data()));
+				stream << ", f = " << f << ", ec=" << mEc->message();
+				ss->log(stream.str());
 #endif
-
 				// the caller has already suspended. Lets
 				// resume them.
 				if (f)
 					mHandle.resume();
+
 			}
 		}
 
@@ -314,8 +418,10 @@ namespace coproto
 			mSock->log(std::string("await_suspend a ") + (mType == Type::send ?
 				"send " : "recv ") + std::to_string(mIdx));
 #endif
-
-			mSock->mState->mStrand.dispatch([this] {
+			boost::asio::dispatch(mSock->mState->mSock_.get_executor(),
+				[this, 
+				lt0 = new Lifetime::Lock(mSock->mState->mOpCount.lock()), 
+				lt1 = new Lifetime::Lock(mActiveCount.lock())]() mutable {
 
 				using namespace boost::asio;
 
@@ -325,38 +431,66 @@ namespace coproto
 					mSock->log(std::string("await_suspend b ") + (mType == Type::send ?
 						"send " : "recv ") + std::to_string(mIdx));
 #endif
+
+					bool exp = false;
+					if (!mSock->mState->mSslLock.compare_exchange_strong(exp, true))
+						std::terminate();
+
 					if (mType == Type::send)
 					{
-						async_write(mSock->mState->mSock, boost::asio::const_buffer(mData.data(), mData.size()),
+						async_write(mSock->mState->mSock_, boost::asio::const_buffer(mData.data(), mData.size()),
 							boost::asio::bind_cancellation_slot(
 								mCancelSignal.slot(),
-								[this/*, s = mSock->mState*/](boost::system::error_code error, std::size_t n) mutable {
-									callback(error, n/*, s*/);
+								[this,
+								lt0 = mSock->mState->mOpCount.lock(),
+								lt1 = mActiveCount.lock()](boost::system::error_code error, std::size_t n) mutable {
+									callback(error, n, std::move(lt0), std::move(lt1));
 								}
 						));
 					}
 					else
 					{
-						async_read(mSock->mState->mSock, boost::asio::mutable_buffer(mData.data(), mData.size()),
+						async_read(mSock->mState->mSock_, boost::asio::mutable_buffer(mData.data(), mData.size()),
 							boost::asio::bind_cancellation_slot(
 								mCancelSignal.slot(),
-								[this/*, s = mSock->mState*/](boost::system::error_code error, std::size_t n) mutable {
-									callback(error, n/*, s*/);
+								[this,
+								lt0 = mSock->mState->mOpCount.lock(),
+								lt1 = mActiveCount.lock()](boost::system::error_code error, std::size_t n) mutable {
+
+									callback(error, n, std::move(lt0), std::move(lt1));
+
 								}
 						));
 					}
 
+					exp = true;
+					if (!mSock->mState->mSslLock.compare_exchange_strong(exp, false))
+						std::terminate();
+
+
+#ifdef COPROTO_ASIO_LOG
+					mSock->log(std::string("await_suspend c ") + (mType == Type::send ?
+						"send " : "recv ") + std::to_string(mIdx));
+#endif
 
 					if (mCancellationRequested)
 						mCancelSignal.emit(boost::asio::cancellation_type::partial);
 
+
+					*lt0 = {};
+					*lt1 = {};
+
 					auto f = mSynchronousFlag.exchange(true);
+
+
+
 					// we completed synchronously if f==true;
 					// this is needed sure we aren't destroyed
 					// before checking if we need to emit
 					// the cancellation.
 					if (f)
 						mHandle.resume();
+
 				}
 				else
 				{
@@ -365,8 +499,17 @@ namespace coproto
 						"send " : "recv ") + std::to_string(mIdx) + " canceled immediately");
 #endif
 					mEc = code::operation_aborted;
+
+
+					*lt0 = {};
+					*lt1 = {};
+
 					mHandle.resume();
 				}
+
+				delete lt0;
+				delete lt1;
+
 				});
 		}
 	}
@@ -379,8 +522,8 @@ namespace coproto
 
 	struct AsioSocket : public detail::AsioSocket<boost::asio::ip::tcp::socket>
 	{
-		AsioSocket(boost::asio::ip::tcp::socket&& s, boost::asio::io_context& ioc)
-			: detail::AsioSocket<boost::asio::ip::tcp::socket>(std::move(s), ioc)
+		AsioSocket(boost::asio::ip::tcp::socket&& s)
+			: detail::AsioSocket<boost::asio::ip::tcp::socket>(std::move(s))
 		{}
 
 		AsioSocket() = default;
@@ -413,12 +556,12 @@ namespace coproto
 			std::string address,
 			boost::asio::io_context& ioc,
 			int numConnection = boost::asio::socket_base::max_connections)
-			: mAcceptor(ioc)
+			: mAcceptor(boost::asio::make_strand(ioc))
 			, mIoc(ioc)
 		{
 
 
-			boost::asio::ip::tcp::resolver resolver(ioc);
+			boost::asio::ip::tcp::resolver resolver(boost::asio::make_strand(ioc));
 			auto i = address.find(":");
 			boost::asio::ip::tcp::endpoint endpoint;
 			if (i != std::string::npos)
@@ -445,7 +588,7 @@ namespace coproto
 			using SocketType = boost::asio::ip::tcp::socket;
 			Awaiter(AsioAcceptor& a, macoro::stop_token token = {})
 				: mAcceptor(a)
-				, mSocket(a.mIoc)
+				, mSocket(boost::asio::make_strand(a.mIoc))
 				, mToken(std::move(token))
 				, mCancellationRequested(false)
 				, mSynchronousFlag(false)
@@ -554,7 +697,7 @@ namespace coproto
 
 				boost::asio::ip::tcp::no_delay option(true);
 				mSocket.set_option(option);
-				return { std::move(mSocket), mAcceptor.mIoc };
+				return { std::move(mSocket) };
 			}
 		};
 
@@ -599,7 +742,7 @@ namespace coproto
 	struct AsioConnect
 	{
 		using SocketType = boost::asio::ip::tcp::socket;
-		boost::asio::io_context& mIoc;
+		//boost::asio::io_context& mIoc;
 		boost::system::error_code mEc;
 		SocketType mSocket;
 		boost::asio::ip::tcp::endpoint mEndpoint;
@@ -633,20 +776,19 @@ namespace coproto
 			boost::asio::io_context& ioc,
 			bool retryOnFailure = true,
 			macoro::stop_token token = {})
-			: mIoc(ioc)
-			, mSocket(ioc)
+			: mSocket(boost::asio::make_strand(ioc))
 			, mToken(token)
 			, mCancellationRequested(false)
 			, mSynchronousFlag(false)
 			, mStarted(false)
 			, mRetryOnFailure(retryOnFailure)
 			, mRetryDelay(boost::posix_time::milliseconds(1))
-			, mTimer(mIoc)
+			, mTimer(ioc)
 		{
 			//log("init");
 
 			auto i = address.find(":");
-			boost::asio::ip::tcp::resolver resolver(ioc);
+			boost::asio::ip::tcp::resolver resolver(boost::asio::make_strand(ioc));
 			if (i != std::string::npos)
 			{
 				auto prefix = address.substr(0, i);
@@ -661,8 +803,7 @@ namespace coproto
 
 		AsioConnect(const AsioConnect&) = delete;
 		AsioConnect(AsioConnect&& a)
-			: mIoc(a.mIoc)
-			, mEc(a.mEc)
+			: mEc(a.mEc)
 			, mSocket(std::move(a.mSocket))
 			, mEndpoint(std::move(a.mEndpoint))
 			, mToken(std::move(a.mToken))
@@ -671,7 +812,7 @@ namespace coproto
 			, mStarted(false)
 			, mRetryOnFailure(a.mRetryOnFailure)
 			, mRetryDelay(boost::posix_time::milliseconds(1))
-			, mTimer(mIoc)
+			, mTimer(std::move(a.mTimer))
 		{
 			if (a.mStarted)
 			{
@@ -774,7 +915,7 @@ namespace coproto
 
 			boost::asio::ip::tcp::no_delay option(true);
 			mSocket.set_option(option);
-			return { std::move(mSocket), mIoc };
+			return { std::move(mSocket) };
 		}
 
 		void retry()
@@ -821,7 +962,7 @@ namespace coproto
 				boost::asio::ssl::context& context,
 				macoro::stop_token token)
 				: mAcceptor(a)
-				, mSocket(a.mAcceptor.mIoc, context)
+				, mSocket(boost::asio::make_strand(a.mAcceptor.mIoc), context)
 				, mToken(std::move(token))
 			{}
 
@@ -920,7 +1061,7 @@ namespace coproto
 				if (mEc)
 					throw std::system_error(mEc);
 
-				return { std::move(mSocket), mAcceptor.mAcceptor.mIoc };
+				return { std::move(mSocket) };
 			}
 		};
 
@@ -953,7 +1094,7 @@ namespace coproto
 			boost::asio::ssl::context& context, 
 			macoro::stop_token token = {})
 			: mConnector(std::move(address), ioc)
-			, mSocket(ioc, context)
+			, mSocket(boost::asio::make_strand(ioc), context)
 			, mToken(std::move(token))
 		{}
 
@@ -1047,7 +1188,7 @@ namespace coproto
 
 			boost::asio::ip::tcp::no_delay option(true);
 			mSocket.lowest_layer().set_option(option);
-			return { std::move(mSocket), mConnector.mIoc };
+			return { std::move(mSocket) };
 		}
 	};
 
@@ -1085,7 +1226,7 @@ namespace coproto
 
 	inline OpenSslX509 getX509(AsioTlsSocket& sock)
 	{
-		return { SSL_get_peer_certificate(sock.mSock->mState->mSock.native_handle()) };
+		return { SSL_get_peer_certificate(sock.mSock->mState->mSock_.native_handle()) };
 	}
 
 

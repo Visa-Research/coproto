@@ -253,12 +253,12 @@ namespace coproto
 				auto s = AsioSocket::makePair();
 
 				boost::asio::socket_base::receive_buffer_size option(1024);
-				s[0].mSock->mState->mSock.set_option(option);
-				s[1].mSock->mState->mSock.set_option(option);
+				s[0].mSock->mState->mSock_.set_option(option);
+				s[1].mSock->mState->mSock_.set_option(option);
 
 				boost::asio::socket_base::send_buffer_size option2(1024);
-				s[0].mSock->mState->mSock.set_option(option2);
-				s[1].mSock->mState->mSock.set_option(option2);
+				s[0].mSock->mState->mSock_.set_option(option2);
+				s[1].mSock->mState->mSock_.set_option(option2);
 
 				//std::vector<u8> sb(10'000'000'000);
 				auto n = 1'000'000;

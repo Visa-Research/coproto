@@ -56,7 +56,7 @@ Cearting a CA key pair
 	openssl genrsa -out private/ca.key.pem 2048
 
 2) Create self signed certificate for the CA:
-	openssl req -new -x509 -key private/ca.key.pem -out cert/ca.cert.pem
+	openssl req -new -x509 -key private/ca.key.pem -out cert/ca.cert.pem -days 9999
 
 The fields can be filled out as follows:
 	Country Name (2 letter code) [AU]:US

@@ -16,6 +16,9 @@ namespace coproto
 		void AsioTlsSocket_Accept_test();
 		void AsioTlsSocket_Accept_sCacnel_test();
 		void AsioTlsSocket_Accept_cCacnel_test();
+		void AsioTlsSocket_sendRecv_base_test();
+		void AsioTlsSocket_sendRecv_test();
+		void AsioTlsSocket_parSendRecv_test();
 
 
 	}
