@@ -30,7 +30,7 @@ jobs:
       # Runs a set of commands using the runners shell
       - name: build deps 
         run: |
-          python3 build.py --setup --par=4  -D COPROTO_ENABLE_BOOST=ON -D COPROTO_ENABLE_OPENSSL=OFF
+          python3 build.py --setup --par=4  -D COPROTO_ENABLE_BOOST=ON -D COPROTO_ENABLE_OPENSSL=ON
           
       - name: build library
         run: |
