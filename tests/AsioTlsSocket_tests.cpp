@@ -754,6 +754,9 @@ namespace coproto
         void AsioTlsSocket_Accept_test() { skip(); }
         void AsioTlsSocket_Accept_sCacnel_test() { skip(); }
         void AsioTlsSocket_Accept_cCacnel_test() { skip(); }
+        void AsioTlsSocket_sendRecv_base_test() { skip(); }
+        void AsioTlsSocket_sendRecv_test() { skip(); }
+        void AsioTlsSocket_parSendRecv_test() { skip(); }
 
 
 #endif

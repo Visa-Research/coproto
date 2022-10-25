@@ -54,8 +54,8 @@
       "cacheVariables": {
         "CMAKE_BUILD_TYPE": "RelWithDebInfo",
         "COPROTO_FETCH_AUTO": "ON",
-        "COPROTO_ENABLE_BOOST": "ON",
-        "COPROTO_ENABLE_OPENSSL": true,
+        "COPROTO_ENABLE_BOOST": false,
+        "COPROTO_ENABLE_OPENSSL": false,
         "COPROTO_CPP_VER": "14",
         "VERBOSE_FETCH": true,
         "CMAKE_INSTALL_PREFIX": "${sourceDir}/out/install/${presetName}"
