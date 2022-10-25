@@ -21,7 +21,10 @@
 #include <string>
 #include <vector>
 
-#define COPROTO_ASIO_LOG
+//#define COPROTO_ASIO_LOG
+#ifndef NDEBUG
+	#define COPROTO_ASIO_DEBUG
+#endif
 
 namespace coproto
 {
@@ -66,18 +69,19 @@ namespace coproto
 			global_asio_io_context.reset();
 		}
 
-		struct Lifetime
+		struct AsioLifetime
 		{
+#ifdef COPROTO_ASIO_DEBUG
 			std::unique_ptr<std::atomic<u64>> mCount;
 
-			Lifetime()
+			AsioLifetime()
 				:mCount(new std::atomic<u64>(0))
 			{}
 
-			Lifetime(Lifetime&&) = default;
+			AsioLifetime(AsioLifetime&&) = default;
 
 
-			~Lifetime()
+			~AsioLifetime()
 			{
 				if (mCount && *mCount != 0)
 					std::terminate();
@@ -85,26 +89,20 @@ namespace coproto
 
 			struct Lock
 			{
-				Lifetime* mL = nullptr;
-				Lifetime* mBase = nullptr;
+				AsioLifetime* mL = nullptr;
+				AsioLifetime* mBase = nullptr;
 
 				Lock() = default;
 				Lock(Lock&& o) : mL(std::exchange(o.mL, nullptr)), mBase(o.mBase) {}
 				Lock& operator=(Lock&& o)
 				{
-
-					if (mL)
-					{
-						if ((*mL->mCount)-- == 0)
-							std::terminate();
-					}
-
+					reset();
 					mBase = o.mBase;
 					mL = std::exchange(o.mL, nullptr);
 					return *this;
 				}
 
-				Lock(Lifetime* l)
+				Lock(AsioLifetime* l)
 					: mL(l)
 					, mBase(l)
 				{
@@ -112,6 +110,11 @@ namespace coproto
 				}
 
 				~Lock()
+				{
+					reset();
+				}
+
+				void reset()
 				{
 					if (mL)
 					{
@@ -124,8 +127,43 @@ namespace coproto
 			Lock lock() {
 				return this;
 			}
-		};
 
+			struct LockPtr
+			{
+				Lock* mPtr = nullptr;
+
+				void reset()
+				{
+					if (mPtr)
+						delete mPtr;
+					mPtr = nullptr;
+				}
+			};
+
+			LockPtr lockPtr()
+			{
+				return { new Lock(this) };
+			}
+#else
+			struct Lock
+			{
+				void reset() {}
+			};
+
+			struct LockPtr
+			{
+				void reset() {}
+			};
+			static LockPtr lockPtr()
+			{
+				return {};
+			}
+			static Lock lock()
+			{
+				return {};
+			}
+#endif
+		};
 
 		template<typename SocketType = boost::asio::ip::tcp::socket>
 		struct AsioSocket : public Socket
@@ -156,8 +194,6 @@ namespace coproto
 
 			struct State;
 			struct Sock;
-
-
 
 			struct Awaiter
 			{
@@ -200,9 +236,9 @@ namespace coproto
 					, mHandle(a.mHandle)
 					, mCancellationRequested(a.mCancellationRequested.load())
 					, mSynchronousFlag(a.mSynchronousFlag.load())
-					, mActiveCount(std::move(a.mActiveCount))
 					, mToken(std::move(a.mToken))
 					, mReg(std::move(a.mReg))
+					, mActiveCount(std::move(a.mActiveCount))
 #ifdef COPROTO_ASIO_LOG
 					, mLogState(a.mLogState)
 					, mIdx(a.mIdx)
@@ -223,7 +259,7 @@ namespace coproto
 				optional<error_code> mEc;
 				boost::asio::cancellation_signal mCancelSignal;
 				std::atomic<bool> mCancellationRequested, mSynchronousFlag;
-				Lifetime mActiveCount;
+				AsioLifetime mActiveCount;
 
 				coroutine_handle<> mHandle;
 				macoro::stop_token mToken;
@@ -244,9 +280,8 @@ namespace coproto
 				}
 #endif
 				void callback(boost::system::error_code ec, std::size_t bt,
-					Lifetime::Lock lt0,
-					Lifetime::Lock lt1
-					/*, std::shared_ptr<State>& s*/);
+					AsioLifetime::Lock lt0,
+					AsioLifetime::Lock lt1);
 
 				std::pair<error_code, u64> await_resume() {
 					COPROTO_ASSERT(mEc);
@@ -262,7 +297,9 @@ namespace coproto
 			{
 				State(SocketType&& s)
 					: mSock_(std::move(s))
+#ifdef COPROTO_ASIO_DEBUG
 					, mSslLock(false)
+#endif
 				{
 #ifdef COPROTO_ASIO_LOG
 					log("created");
@@ -275,7 +312,6 @@ namespace coproto
 				}
 
 				SocketType mSock_;
-				std::atomic_bool mSslLock;
 
 #ifdef COPROTO_ASIO_LOG
 				std::mutex mLogMutex;
@@ -290,7 +326,10 @@ namespace coproto
 					mLog.push_back(std::move(msg));
 				}
 #endif
-				Lifetime mOpCount;
+#ifdef COPROTO_ASIO_DEBUG
+				std::atomic_bool mSslLock;
+#endif
+				AsioLifetime mOpCount;
 			};
 
 
@@ -343,8 +382,9 @@ namespace coproto
 
 			
 			boost::asio::dispatch(mState->mSock_.get_executor(),
-				[s = mState, 
-				lt = new Lifetime::Lock(mState->mOpCount.lock())]()mutable{
+				[s = mState,
+				lt = mState->mOpCount.lockPtr()
+				]()mutable{
 
 #ifdef COPROTO_ASIO_LOG
 				s->log("close ");
@@ -352,9 +392,7 @@ namespace coproto
 
 				s->mSock_.lowest_layer().close();
 
-
-				*lt = {};
-				delete lt;
+				lt.reset();
 
 				});
 		}
@@ -366,8 +404,8 @@ namespace coproto
 		inline void AsioSocket<SocketType>::Awaiter::callback(
 			boost::system::error_code ec, 
 			std::size_t bytesTrasfered,
-			Lifetime::Lock lt0,
-			Lifetime::Lock lt1
+			AsioLifetime::Lock lt0,
+			AsioLifetime::Lock lt1
 			)
 		{
 			//if (s.use_count() == 1)
@@ -407,6 +445,9 @@ namespace coproto
 				if (f)
 					mHandle.resume();
 
+				// --------- DANGER -----------
+				// this is destroyed
+
 			}
 		}
 
@@ -419,9 +460,10 @@ namespace coproto
 				"send " : "recv ") + std::to_string(mIdx));
 #endif
 			boost::asio::dispatch(mSock->mState->mSock_.get_executor(),
-				[this, 
-				lt0 = new Lifetime::Lock(mSock->mState->mOpCount.lock()), 
-				lt1 = new Lifetime::Lock(mActiveCount.lock())]() mutable {
+				[this,
+				lt0 = mSock->mState->mOpCount.lockPtr(), 
+				lt1 = mActiveCount.lockPtr()
+				]() mutable {
 
 				using namespace boost::asio;
 
@@ -432,9 +474,11 @@ namespace coproto
 						"send " : "recv ") + std::to_string(mIdx));
 #endif
 
+#ifdef COPROTO_ASIO_DEBUG
 					bool exp = false;
 					if (!mSock->mState->mSslLock.compare_exchange_strong(exp, true))
 						std::terminate();
+#endif
 
 					if (mType == Type::send)
 					{
@@ -443,7 +487,8 @@ namespace coproto
 								mCancelSignal.slot(),
 								[this,
 								lt0 = mSock->mState->mOpCount.lock(),
-								lt1 = mActiveCount.lock()](boost::system::error_code error, std::size_t n) mutable {
+								lt1 = mActiveCount.lock()
+								](boost::system::error_code error, std::size_t n) mutable {
 									callback(error, n, std::move(lt0), std::move(lt1));
 								}
 						));
@@ -455,7 +500,8 @@ namespace coproto
 								mCancelSignal.slot(),
 								[this,
 								lt0 = mSock->mState->mOpCount.lock(),
-								lt1 = mActiveCount.lock()](boost::system::error_code error, std::size_t n) mutable {
+								lt1 = mActiveCount.lock()
+								](boost::system::error_code error, std::size_t n) mutable {
 
 									callback(error, n, std::move(lt0), std::move(lt1));
 
@@ -463,9 +509,11 @@ namespace coproto
 						));
 					}
 
+#ifdef COPROTO_ASIO_DEBUG
 					exp = true;
 					if (!mSock->mState->mSslLock.compare_exchange_strong(exp, false))
 						std::terminate();
+#endif
 
 
 #ifdef COPROTO_ASIO_LOG
@@ -476,20 +524,20 @@ namespace coproto
 					if (mCancellationRequested)
 						mCancelSignal.emit(boost::asio::cancellation_type::partial);
 
+					lt0.reset();
+					lt1.reset();
 
-					*lt0 = {};
-					*lt1 = {};
-
+					// After this operation our lifetime could end.
 					auto f = mSynchronousFlag.exchange(true);
-
-
-
 					// we completed synchronously if f==true;
 					// this is needed sure we aren't destroyed
 					// before checking if we need to emit
 					// the cancellation.
 					if (f)
 						mHandle.resume();
+
+					// --------- DANGER -----------
+					// this is destroyed
 
 				}
 				else
@@ -500,15 +548,15 @@ namespace coproto
 #endif
 					mEc = code::operation_aborted;
 
-
-					*lt0 = {};
-					*lt1 = {};
+					lt0.reset();
+					lt1.reset();
 
 					mHandle.resume();
-				}
 
-				delete lt0;
-				delete lt1;
+					// --------- DANGER -----------
+					// this is destroyed
+
+				}
 
 				});
 		}
