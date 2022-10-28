@@ -21,7 +21,7 @@
 #include <string>
 #include <vector>
 
-//#define COPROTO_ASIO_LOG
+#define COPROTO_ASIO_LOG
 #ifndef NDEBUG
 	#define COPROTO_ASIO_DEBUG
 #endif
@@ -467,7 +467,7 @@ namespace coproto
 
 				using namespace boost::asio;
 
-				if (!mCancellationRequested)
+				if (!(mToken.stop_possible() && mCancellationRequested))
 				{
 #ifdef COPROTO_ASIO_LOG
 					mSock->log(std::string("await_suspend b ") + (mType == Type::send ?
@@ -521,7 +521,7 @@ namespace coproto
 						"send " : "recv ") + std::to_string(mIdx));
 #endif
 
-					if (mCancellationRequested)
+					if (mToken.stop_possible() && mCancellationRequested)
 						mCancelSignal.emit(boost::asio::cancellation_type::partial);
 
 					lt0.reset();
@@ -981,7 +981,7 @@ namespace coproto
 					await_suspend(mHandle);
 				}));
 
-			if (mCancellationRequested)
+			if (mToken.stop_possible() && mCancellationRequested)
 				mCancelSignal.emit(boost::asio::cancellation_type::partial);
 
 		}
@@ -1080,7 +1080,7 @@ namespace coproto
 										h.resume();
 								}));
 
-							if (mCancellationRequested)
+							if (mToken.stop_possible() && mCancellationRequested)
 								mCancelSignal.emit(boost::asio::cancellation_type::terminal);
 
 							auto f = mSynchronousFlag--;
@@ -1092,7 +1092,7 @@ namespace coproto
 						}
 					}));
 
-				if (mCancellationRequested)
+				if (mToken.stop_possible() && mCancellationRequested)
 					mCancelSignal.emit(boost::asio::cancellation_type::terminal);
 
 				auto f = mSynchronousFlag--;
@@ -1107,7 +1107,10 @@ namespace coproto
 			AsioTlsSocket await_resume()
 			{
 				if (mEc)
+				{
+					std::cout << mEc.message() << std::endl;
 					throw std::system_error(mEc);
+				}
 
 				return { std::move(mSocket) };
 			}
@@ -1203,7 +1206,7 @@ namespace coproto
 							}));
 
 
-						if (mCancellationRequested)
+						if (mToken.stop_possible() && mCancellationRequested)
 							mCancelSignal.emit(boost::asio::cancellation_type::terminal);
 
 						auto f = mSynchronousFlag--;
@@ -1216,7 +1219,7 @@ namespace coproto
 				}));
 
 
-			if (mCancellationRequested)
+			if (mToken.stop_possible() && mCancellationRequested)
 				mCancelSignal.emit(boost::asio::cancellation_type::terminal);
 
 			auto f = mSynchronousFlag--;
@@ -1232,7 +1235,10 @@ namespace coproto
 		AsioTlsSocket await_resume()
 		{
 			if (mConnector.mEc)
+			{
+				std::cout << "c, " << mConnector.mEc.message() << std::endl;
 				throw std::system_error(mConnector.mEc);
+			}
 
 			boost::asio::ip::tcp::no_delay option(true);
 			mSocket.lowest_layer().set_option(option);

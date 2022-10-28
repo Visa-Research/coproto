@@ -43,8 +43,8 @@ namespace coproto
 			// feistel like "hash function". TODO, use real hash function
 			for (u64 i = 0; i < 5; ++i)
 			{
-				u64& l = ret.mVal[i & 1 ^ 0];
-				u64& r = ret.mVal[i & 1 ^ 1];
+				u64& l = ret.mVal[(i & 1) ^ 0];
+				u64& r = ret.mVal[(i & 1) ^ 1];
 				l = std::hash<u64>{}(r + mChildIdx + 32243534) ^ l ^ 9478532833;
 			}
 			ret.mVal[0] ^= mVal[0];

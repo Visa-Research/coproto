@@ -143,25 +143,28 @@ namespace coproto
 			macoro::thread_pool tp(2, work);
 
 
+
+			std::array<AsioSocket,2> ss; 
 			auto task_ = [&](bool sender) -> task<void> {
 
-				MC_BEGIN(task<>, &, sender, ss = AsioSocket{});
+				MC_BEGIN(task<>, &, sender);
 				if (sender)
 				{
-					MC_AWAIT_SET(ss, AsioAcceptor("localhost:1212", global_io_context()));
-					MC_AWAIT(ss.send(std::move(sb)));
+					MC_AWAIT_SET(ss[0], AsioAcceptor("localhost:1212", global_io_context()));
+					//std::cout << "connected"<<std::endl; 
+					MC_AWAIT(ss[0].send(std::move(sb)));
 
 
-					MC_AWAIT(ss.flush());
+					MC_AWAIT(ss[0].flush());
 					// destroy the socket before the send operation completes. 
-					ss = {};
+					ss[0] = {};
 				}
 				else
 				{
-					MC_AWAIT_SET(ss, AsioConnect("localhost:1212", global_io_context()));
+					MC_AWAIT_SET(ss[1], AsioConnect("localhost:1212", global_io_context()));
 
 					MC_AWAIT(tp.schedule_after(std::chrono::milliseconds(100)));
-					MC_AWAIT(ss.recv(rb));
+					MC_AWAIT(ss[1].recv(rb));
 				}
 				MC_END();
 			};
