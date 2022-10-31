@@ -11,7 +11,10 @@ namespace coproto
 
 
 	}
-	//std::mutex ggMtx;
-	//std::vector<std::string> ggLog;
+
+#ifdef COPROTO_ASIO_LOG
+	std::mutex ggMtx;
+	std::vector<std::string> ggLog;
+#endif
 #endif
 }

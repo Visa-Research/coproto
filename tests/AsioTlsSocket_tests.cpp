@@ -643,8 +643,8 @@ namespace coproto
         void AsioTlsSocket_parSendRecv_test()
         {
 
-            u64 trials = 100;
-            u64 numOps = 200;
+            u64 trials = 50;
+            u64 numOps = 50;
             boost::asio::io_context ioc;
             optional<boost::asio::io_context::work> w(ioc);
 

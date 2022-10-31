@@ -592,8 +592,10 @@ namespace coproto
 	using AsioTlsSocket = detail::AsioSocket<boost::asio::ssl::stream<boost::asio::ip::tcp::socket>>;
 #endif
 
-	//extern std::mutex ggMtx;
-	//extern std::vector<std::string> ggLog;
+#ifdef COPROTO_ASIO_LOG
+	extern std::mutex ggMtx;
+	extern std::vector<std::string> ggLog;
+#endif
 
 	struct AsioAcceptor
 	{
@@ -642,7 +644,10 @@ namespace coproto
 				, mSynchronousFlag(false)
 				, mStarted(false)
 			{
-				//log("init");
+
+#ifdef COPROTO_ASIO_LOG
+				log("init");
+#endif
 			}
 
 			Awaiter(const Awaiter&) = delete;
@@ -662,11 +667,11 @@ namespace coproto
 				}
 			}
 
-			//void log(std::string s)
-			//{
-			//	std::lock_guard<std::mutex> l(::coproto::ggMtx);
-			//	ggLog.push_back("accept::" + s);
-			//}
+			void log(std::string s)
+			{
+				std::lock_guard<std::mutex> l(::coproto::ggMtx);
+				ggLog.push_back("accept::" + s);
+			}
 
 			AsioAcceptor& mAcceptor;
 			boost::system::error_code mEc;
@@ -685,11 +690,18 @@ namespace coproto
 #endif
 			void await_suspend(coroutine_handle<> h)
 			{
-				//log("await_suspend");
+
+#ifdef COPROTO_ASIO_LOG
+				log("await_suspend");
+#endif
 				if (mToken.stop_possible())
 				{
+					assert(mCancellationRequested == false);
 					mReg.emplace(mToken, [this] {
-						//log("cancel requested");
+						
+#ifdef COPROTO_ASIO_LOG
+						log("cancel requested");
+#endif
 						mCancellationRequested = true;
 						mCancelSignal.emit(boost::asio::cancellation_type::partial);
 						});
@@ -698,14 +710,20 @@ namespace coproto
 						boost::asio::bind_cancellation_slot(
 							mCancelSignal.slot(),
 							[this, h](boost::system::error_code ec) {
-								//log("async_accept");
+
+#ifdef COPROTO_ASIO_LOG
+								log("async_accept");
+#endif
 								mEc = ec;
 
 								auto f = mSynchronousFlag.exchange(true);
 
 								if (f)
 								{
-									//log("resume async");
+
+#ifdef COPROTO_ASIO_LOG
+									log("resume async");
+#endif
 									h.resume();
 								}
 							}
@@ -721,7 +739,10 @@ namespace coproto
 					// the cancellation.
 					if (f)
 					{
-						//log("resume sync");
+
+#ifdef COPROTO_ASIO_LOG
+						log("resume sync");
+#endif
 
 						h.resume();
 					}
@@ -730,7 +751,10 @@ namespace coproto
 				{
 					mAcceptor.mAcceptor.async_accept(mSocket, [this, h](boost::system::error_code ec) {
 						mEc = ec;
-						//log("resume **");
+
+#ifdef COPROTO_ASIO_LOG
+						log("resume **");
+#endif
 						h.resume();
 						});
 				}
@@ -739,7 +763,10 @@ namespace coproto
 
 			AsioSocket await_resume()
 			{
-				//log("await_resume");
+
+#ifdef COPROTO_ASIO_LOG
+				log("await_resume");
+#endif
 				if (mEc)
 					throw std::system_error(mEc);
 
@@ -793,12 +820,13 @@ namespace coproto
 		//boost::asio::io_context& mIoc;
 		boost::system::error_code mEc;
 		SocketType mSocket;
+		boost::asio::io_context& mIoc;
 		boost::asio::ip::tcp::endpoint mEndpoint;
 		macoro::stop_token mToken;
 		macoro::optional_stop_callback mReg;
 
 		boost::asio::cancellation_signal mCancelSignal;
-		std::atomic<bool> mCancellationRequested, mSynchronousFlag, mStarted;
+		std::atomic<char> mCancellationRequested, mSynchronousFlag, mStarted;
 		bool mRetryOnFailure;
 
 		boost::posix_time::time_duration mRetryDelay;
@@ -813,27 +841,32 @@ namespace coproto
 		//std::atomic<Status> mStatus;
 
 
-		//void log(std::string s)
-		//{
-		//	std::lock_guard<std::mutex> l(::coproto::ggMtx);
-		//	ggLog.push_back("connect::" + s);
-		//}
+		void log(std::string s)
+		{
+			std::lock_guard<std::mutex> l(::coproto::ggMtx);
+			ggLog.push_back("connect::" + s);
+		}
 
 		AsioConnect(
 			std::string address,
 			boost::asio::io_context& ioc,
-			bool retryOnFailure = true,
-			macoro::stop_token token = {})
+			macoro::stop_token token = {},
+			bool retryOnFailure = true
+			)
 			: mSocket(boost::asio::make_strand(ioc))
+			, mIoc(ioc)
 			, mToken(token)
-			, mCancellationRequested(false)
-			, mSynchronousFlag(false)
-			, mStarted(false)
+			, mCancellationRequested(0)
+			, mSynchronousFlag(0)
+			, mStarted(0)
 			, mRetryOnFailure(retryOnFailure)
 			, mRetryDelay(boost::posix_time::milliseconds(1))
 			, mTimer(ioc)
 		{
-			//log("init");
+
+#ifdef COPROTO_ASIO_LOG
+			log("init");
+#endif
 
 			auto i = address.find(":");
 			boost::asio::ip::tcp::resolver resolver(boost::asio::make_strand(ioc));
@@ -852,12 +885,13 @@ namespace coproto
 		AsioConnect(const AsioConnect&) = delete;
 		AsioConnect(AsioConnect&& a)
 			: mEc(a.mEc)
+			, mIoc(a.mIoc)
 			, mSocket(std::move(a.mSocket))
 			, mEndpoint(std::move(a.mEndpoint))
 			, mToken(std::move(a.mToken))
-			, mCancellationRequested(false)
-			, mSynchronousFlag(false)
-			, mStarted(false)
+			, mCancellationRequested(0)
+			, mSynchronousFlag(0)
+			, mStarted(0)
 			, mRetryOnFailure(a.mRetryOnFailure)
 			, mRetryDelay(boost::posix_time::milliseconds(1))
 			, mTimer(std::move(a.mTimer))
@@ -869,7 +903,26 @@ namespace coproto
 			}
 		}
 
-		bool await_ready() { return false; }
+		bool await_ready() {
+			
+			mStarted = 1;
+			if (mToken.stop_possible())
+			{
+				if(!mReg)
+				{
+					assert(!mCancellationRequested);
+					mReg.emplace(mToken, [this] {
+
+#ifdef COPROTO_ASIO_LOG
+						log("cancel callback, emit");
+#endif
+						mCancellationRequested = 1;
+						mCancelSignal.emit(boost::asio::cancellation_type::partial);
+						});
+				}
+			}
+			return false; 
+		}
 #ifdef COPROTO_CPP20
 		void await_suspend(std::coroutine_handle<> h)
 		{
@@ -879,36 +932,35 @@ namespace coproto
 		void await_suspend(coroutine_handle<> h)
 		{
 			mHandle = h;
-			//log("await_suspend");
-			mStarted = true;
 
-			if (mToken.stop_possible())
-			{
-				if(!mReg)
-					mReg.emplace(mToken, [this] {
-						//log("cancel callback, emit");
-						mCancellationRequested = true;
-						mCancelSignal.emit(boost::asio::cancellation_type::partial);
-						});
+#ifdef COPROTO_ASIO_LOG
+			log("await_suspend");
+#endif
 
 				mSocket.async_connect(mEndpoint,
 					boost::asio::bind_cancellation_slot(
 						mCancelSignal.slot(),
 						[this](boost::system::error_code ec) {
-							//log("async_connect callback");
+
+#ifdef COPROTO_ASIO_LOG
+							log("async_connect callback");
+#endif
 							mEc = ec;
 
-							auto f = mSynchronousFlag.exchange(true);
+							auto f = mSynchronousFlag.exchange(1);
 
 							if (f)
 							{
-								if (mEc && mRetryOnFailure && !mCancellationRequested)
+								if (mEc == boost::system::errc::connection_refused && mRetryOnFailure && !mCancellationRequested)
 								{
 									retry();
 								}
 								else
 								{
-									//log("async_connect callback resume");
+
+#ifdef COPROTO_ASIO_LOG
+									log("async_connect callback resume");
+#endif
 									mHandle.resume();
 								}
 							}
@@ -917,43 +969,69 @@ namespace coproto
 
 				if (mCancellationRequested)
 				{
-					//log("emit cancellation");
+					
+#ifdef COPROTO_ASIO_LOG
+					log("emit cancellation");
+#endif
 					mCancelSignal.emit(boost::asio::cancellation_type::partial);
 				}
-				auto f = mSynchronousFlag.exchange(true);
+				auto f = mSynchronousFlag.exchange(1);
 				// we completed synchronously if f==true;
 				// this is needed sure we aren't destroyed
 				// before checking if we need to emit
 				// the cancellation.
 				if (f)
 				{
-					if (mEc && mRetryOnFailure && !mCancellationRequested)
+					if (mEc == boost::system::errc::connection_refused && mRetryOnFailure && !mCancellationRequested)
 					{
 						retry();
 					}
 					else
 					{
-						//log("async_connect sync resume");
+						
+#ifdef COPROTO_ASIO_LOG
+						log("async_connect sync resume");
+#endif
 						mHandle.resume();
 					}
 				}
-			}
-			else
-			{
+// 			}
+// 			else
+// 			{
 
-				mSocket.async_connect(mEndpoint, [this](boost::system::error_code ec) {
-					if (ec && mRetryOnFailure)
-					{
-						await_suspend(mHandle);
-					}
-					else
-					{
-						mEc = ec;
-						//log("async_connect callback resume");
-						mHandle.resume();
-					}
-					});
-			}
+// 				mSocket.async_connect(mEndpoint, [this](boost::system::error_code ec) {
+// 					if (ec == boost::system::errc::connection_refused && mRetryOnFailure)
+// 					{
+
+// #ifdef COPROTO_ASIO_LOG
+// 						log(" "+ std::to_string(ec.value())+ " " + ec.message());
+// #endif
+// 						mTimer.expires_from_now(mRetryDelay);
+// 						mTimer.async_wait(
+// 							[this](error_code ec) {
+// 							mSynchronousFlag = false;
+// 							mRetryDelay = std::min<boost::posix_time::time_duration>(
+// 								mRetryDelay * 2,
+// 								boost::posix_time::milliseconds(1000)
+// 								);
+
+// #ifdef COPROTO_ASIO_LOG
+// 							log("retry");
+// #endif
+// 							mSocket.close();
+// 							await_suspend(mHandle);
+// 							});
+// 					}
+// 					else
+// 					{
+// 						mEc = ec;
+// #ifdef COPROTO_ASIO_LOG
+// 						log("async_connect callback resume: " + ec.message());
+// #endif
+// 						mHandle.resume();
+// 					}
+// 					});
+// 			}
 		}
 
 		AsioSocket await_resume()
@@ -973,11 +1051,16 @@ namespace coproto
 				boost::asio::bind_cancellation_slot(
 					mCancelSignal.slot(), 
 					[this](error_code ec) {
-					mSynchronousFlag = false;
+					mSynchronousFlag = 0;
 					mRetryDelay = std::min<boost::posix_time::time_duration>(
 						mRetryDelay * 2,
 						boost::posix_time::milliseconds(1000)
 						);
+						
+#ifdef COPROTO_ASIO_LOG
+					log("retry");
+#endif
+					mSocket.close();
 					await_suspend(mHandle);
 				}));
 
@@ -1108,7 +1191,7 @@ namespace coproto
 			{
 				if (mEc)
 				{
-					std::cout << mEc.message() << std::endl;
+					//std::cout << mEc.message() << std::endl;
 					throw std::system_error(mEc);
 				}
 
@@ -1133,30 +1216,38 @@ namespace coproto
 
 		AsioConnect mConnector;
 		SocketType mSocket;
-		macoro::stop_token mToken;
-		macoro::optional_stop_callback mReg;
-		boost::asio::cancellation_signal mCancelSignal;
-		std::atomic<bool> mCancellationRequested;
-		std::atomic<int> mSynchronousFlag;
+
 
 		AsioTlsConnect(
 			std::string address,
 			boost::asio::io_context& ioc,
 			boost::asio::ssl::context& context, 
-			macoro::stop_token token = {})
-			: mConnector(std::move(address), ioc)
+			macoro::stop_token token = {},
+			bool retryOnFailure = true
+			)
+			: mConnector(std::move(address), ioc, token, retryOnFailure)
 			, mSocket(boost::asio::make_strand(ioc), context)
-			, mToken(std::move(token))
 		{}
 
 		AsioTlsConnect(const AsioTlsConnect&) = delete;
 		AsioTlsConnect(AsioTlsConnect&& a)
 			: mConnector(std::move(a.mConnector))
 			, mSocket(std::move(a.mSocket))
-			, mToken(std::move(a.mToken))
 		{}
 
-		bool await_ready() { return false; }
+		bool await_ready() { 
+			
+			if (mConnector.mToken.stop_possible())
+			{
+				mConnector.mCancellationRequested = false;
+				mConnector.mReg.emplace(mConnector.mToken, [this] {
+					mConnector.mCancellationRequested = true;
+					mConnector.mCancelSignal.emit(boost::asio::cancellation_type::terminal);
+					});
+			}
+			mConnector.mSynchronousFlag = 2;
+			return false; 
+		}
 #ifdef COPROTO_CPP20
 		void await_suspend(std::coroutine_handle<> h)
 		{
@@ -1165,70 +1256,88 @@ namespace coproto
 #endif
 		void await_suspend(coroutine_handle<> h)
 		{
-
-			if (mToken.stop_possible())
-			{
-				mCancellationRequested = false;
-				mReg.emplace(mToken, [this] {
-					mCancellationRequested = true;
-					mCancelSignal.emit(boost::asio::cancellation_type::terminal);
-					});
-			}
-			mSynchronousFlag = 2;
-
+			mConnector.mHandle = h;
 			mSocket.lowest_layer().async_connect(mConnector.mEndpoint, boost::asio::bind_cancellation_slot(
-				mCancelSignal.slot(),
-				[this, h](boost::system::error_code ec) {
+				mConnector.mCancelSignal.slot(),
+				[this](boost::system::error_code ec) {
 					mConnector.mEc = ec;
 					if (mConnector.mEc)
 					{
-						auto f = (mSynchronousFlag -= 2);
+					
+						auto f = (mConnector.mSynchronousFlag -= 2);
 						// we can call resume if the initiator has already exited.
 						// otherwise they will resume it after we unwind.
 						if (f < 0)
-							h.resume();
+						{
+							if(mConnector.mEc == boost::system::errc::connection_refused && mConnector.mRetryOnFailure)
+							{
+								retry();
+							}
+							else
+							{
+								auto h = std::exchange(mConnector.mHandle, nullptr);
+								h.resume();
+							}
+						}
 					}
 					else
 					{
 						mSocket.async_handshake(boost::asio::ssl::stream_base::client, boost::asio::bind_cancellation_slot(
-							mCancelSignal.slot(),
-							[this, h](boost::system::error_code ec)
+							mConnector.mCancelSignal.slot(),
+							[this](boost::system::error_code ec)
 							{
 								mConnector.mEc = ec;
 
-								auto f = mSynchronousFlag--;
+								auto f = mConnector.mSynchronousFlag--;
 
 								// we can call resume if the initiator and the 'accept' handle
 								// have already exited. Otherwise one of them will resume it 
 								// after we unwind.
 								if (f == 0)
+								{
+
+									auto h = std::exchange(mConnector.mHandle, nullptr);
 									h.resume();
+								}
 							}));
 
 
-						if (mToken.stop_possible() && mCancellationRequested)
-							mCancelSignal.emit(boost::asio::cancellation_type::terminal);
+						if (mConnector.mToken.stop_possible() && mConnector.mCancellationRequested)
+							mConnector.mCancelSignal.emit(boost::asio::cancellation_type::terminal);
 
-						auto f = mSynchronousFlag--;
+						auto f = mConnector.mSynchronousFlag--;
 						// we can call resume if the initiator and the 'handshake' handle
 						// have already exited. Otherwise one of them will resume it 
 						// after we unwind.
 						if (f == 0)
-							h.resume();
+						{
+							if(mConnector.mEc == boost::system::errc::connection_refused && mConnector.mRetryOnFailure)
+							{
+								retry();
+							}
+							else
+							{
+								auto h = std::exchange(mConnector.mHandle, nullptr);
+								h.resume();
+							}
+						}
 					}
 				}));
 
 
-			if (mToken.stop_possible() && mCancellationRequested)
-				mCancelSignal.emit(boost::asio::cancellation_type::terminal);
+			if (mConnector.mToken.stop_possible() && mConnector.mCancellationRequested)
+				mConnector.mCancelSignal.emit(boost::asio::cancellation_type::terminal);
 
-			auto f = mSynchronousFlag--;
+			auto f = mConnector.mSynchronousFlag--;
 			// we completed synchronously if f==3;
 			// this is needed sure we aren't destroyed
 			// before checking if we need to emit
 			// the cancellation.
 			if (f == 0)
+			{
+				auto h = std::exchange(mConnector.mHandle, nullptr);
 				h.resume();
+			}
 		}
 
 
@@ -1236,13 +1345,46 @@ namespace coproto
 		{
 			if (mConnector.mEc)
 			{
-				std::cout << "c, " << mConnector.mEc.message() << std::endl;
+				//std::cout << "c, " << mConnector.mEc.message() << std::endl;
 				throw std::system_error(mConnector.mEc);
 			}
 
 			boost::asio::ip::tcp::no_delay option(true);
 			mSocket.lowest_layer().set_option(option);
 			return { std::move(mSocket) };
+		}
+
+
+		void retry()
+		{
+			mConnector.mTimer.expires_from_now(mConnector.mRetryDelay);
+			mConnector.mTimer.async_wait(
+				boost::asio::bind_cancellation_slot(
+					mConnector.mCancelSignal.slot(), 
+					[this](error_code ec) {
+					mConnector.mSynchronousFlag = 2;
+					mConnector.mRetryDelay = std::min<boost::posix_time::time_duration>(
+						mConnector.mRetryDelay * 2,
+						boost::posix_time::milliseconds(1000)
+						);
+						
+#ifdef COPROTO_ASIO_LOG
+					log("retry");
+#endif
+
+					mSocket.lowest_layer().close();
+					await_suspend(mConnector.mHandle);
+				}));
+
+			if (mConnector.mToken.stop_possible() && mConnector.mCancellationRequested)
+				mConnector.mCancelSignal.emit(boost::asio::cancellation_type::partial);
+
+		}
+
+
+		void log(std::string s)
+		{
+			mConnector.log(s);
 		}
 	};
 

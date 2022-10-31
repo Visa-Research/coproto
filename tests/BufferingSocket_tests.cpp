@@ -85,7 +85,7 @@ namespace coproto
 		void BufferingSocket_parSendRecv_test()
 		{
 
-			u64 trials = 1000;
+			u64 trials = 100;
 			u64 numOps = 100;
 
 			macoro::thread_pool ex[4];

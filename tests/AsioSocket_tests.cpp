@@ -85,7 +85,7 @@ namespace coproto
 			try {
 
 				try {
-					auto s = macoro::sync_wait(AsioConnect(address, ioc, true, token));
+					auto s = macoro::sync_wait(AsioConnect(address, ioc, token));
 					throw MACORO_RTE_LOC;
 				}
 				catch (std::system_error e)
@@ -163,20 +163,34 @@ namespace coproto
 				{
 					MC_AWAIT_SET(ss[1], AsioConnect("localhost:1212", global_io_context()));
 
-					MC_AWAIT(tp.schedule_after(std::chrono::milliseconds(100)));
+					//MC_AWAIT(tp.schedule_after(std::chrono::milliseconds(100)));
 					MC_AWAIT(ss[1].recv(rb));
 				}
 				MC_END();
 			};
-
+			
 			auto e0 = task_(0)
 				| macoro::start_on(tp);
 			auto e1 = task_(1)
 				| macoro::start_on(tp);
 
+
+			// bool done = false;
+			// auto ff = std::async([&]{
+			// 	std::this_thread::sleep_for(std::chrono::seconds(1));
+			// 	if(!done)
+			// 	{
+			// 		u64 i = 0;
+			// 		for(auto l : ggLog)
+			// 			std::cout << i++ << ": " << l << std::endl;
+			// 	}
+			// });
 			auto r = macoro::sync_wait(macoro::when_all_ready(
 				std::move(e0), std::move(e1)
 			));
+			// done = true;
+			// ff.get();
+
 			std::get<0>(r).result();
 			std::get<1>(r).result();
 			work.reset();
@@ -184,8 +198,8 @@ namespace coproto
 		void AsioSocket_parSendRecv_test()
 		{
 
-			u64 trials = 100;
-			u64 numOps = 200;
+			u64 trials = 50;
+			u64 numOps = 50;
 			boost::asio::io_context ioc;
 			optional<boost::asio::io_context::work> w(ioc);
 
@@ -355,7 +369,7 @@ namespace coproto
 		void AsioSocket_parCancellation_test(const CLP& cmd)
 		{
 
-			u64 trials = cmd.getOr("trials",1000);
+			u64 trials = cmd.getOr("trials",100);
 			u64 numOps = 20;
 			boost::asio::io_context ioc;
 			optional<boost::asio::io_context::work> w(ioc);
@@ -548,7 +562,7 @@ namespace coproto
 		void AsioSocket_close_test()
 		{
 
-			u64 trials = 1000;
+			u64 trials = 100;
 			u64 numOps = 20;
 			boost::asio::io_context ioc;
 			optional<boost::asio::io_context::work> w(ioc);
