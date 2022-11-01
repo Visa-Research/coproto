@@ -29,6 +29,7 @@ if (NOT MACORO_FOUND
                        -DCMAKE_BUILD_TYPE:STRING=${CMAKE_BUILD_TYPE} -DMACORO_FETCH_AUTO=ON -DVERBOSE_FETCH=${VERBOSE_FETCH} 
                        -DMACORO_CPP_VER=${COPROTO_CPP_VER}
                        -DMACORO_PIC=${COPROTO_PIC}
+                       -DMACORO_THIRDPARTY_CLONE_DIR=${COPROTO_THIRDPARTY_CLONE_DIR}
                        )
     set(BUILD_CMD     ${CMAKE_COMMAND} --build ${BUILD_DIR} --config ${CMAKE_BUILD_TYPE})
     set(INSTALL_CMD   ${CMAKE_COMMAND} --install ${BUILD_DIR} --config ${CMAKE_BUILD_TYPE} --prefix ${COPROTO_STAGE})
