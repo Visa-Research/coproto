@@ -3,7 +3,7 @@ set(DEP_NAME            function2)
 set(GIT_REPOSITORY      https://github.com/Naios/function2.git)
 set(GIT_TAG             "02ca99831de59c7c3a4b834789260253cace0ced" )
 
-set(CLONE_DIR "${CMAKE_CURRENT_LIST_DIR}/${DEP_NAME}")
+set(CLONE_DIR "${COPROTO_THIRDPARTY_CLONE_DIR}/${DEP_NAME}")
 set(BUILD_DIR "${CLONE_DIR}/build/${COPROTO_CONFIG}")
 set(LOG_FILE  "${CMAKE_CURRENT_LIST_DIR}/log-${DEP_NAME}.txt")
 
@@ -22,7 +22,7 @@ if(NOT function2_FOUND)
 
     message("============= Building ${DEP_NAME} =============")
     if(NOT EXISTS ${CLONE_DIR})
-        run(NAME "Cloning ${GIT_REPOSITORY}" CMD ${DOWNLOAD_CMD} WD ${CMAKE_CURRENT_LIST_DIR})
+        run(NAME "Cloning ${GIT_REPOSITORY}" CMD ${DOWNLOAD_CMD} WD ${COPROTO_THIRDPARTY_CLONE_DIR})
     endif()
 
     run(NAME "Checkout ${GIT_TAG} " CMD ${CHECKOUT_CMD}  WD ${CLONE_DIR})
@@ -36,12 +36,14 @@ else()
 endif()
 
 install(CODE "
-    execute_process(
-        COMMAND ${SUDO} \${CMAKE_COMMAND} --install ${BUILD_DIR} --config ${CMAKE_BUILD_TYPE} --prefix \${CMAKE_INSTALL_PREFIX}
-        WORKING_DIRECTORY ${CLONE_DIR}
-        RESULT_VARIABLE RESULT
-        COMMAND_ECHO STDOUT
-    )
+    if(NOT CMAKE_INSTALL_PREFIX STREQUAL \"${COPROTO_STAGE}\")
+        execute_process(
+            COMMAND ${SUDO} \${CMAKE_COMMAND} --install ${BUILD_DIR} --config ${CMAKE_BUILD_TYPE} --prefix \${CMAKE_INSTALL_PREFIX}
+            WORKING_DIRECTORY ${CLONE_DIR}
+            RESULT_VARIABLE RESULT
+            COMMAND_ECHO STDOUT
+        )
+    endif()
 ")
 
 

@@ -106,7 +106,13 @@ endif()
 ###########################################################################
 
 if(COPROTO_ENABLE_OPENSSL)
-    find_package(OpenSSL)
+    find_package(OpenSSL REQUIRED)
+    
+    message("OPENSSL_INCLUDE_DIR=${OPENSSL_INCLUDE_DIR}")
+    message("OPENSSL_SSL_LIBRARY=${OPENSSL_SSL_LIBRARY}")
+    message("OPENSSL_LIBRARIES  =${OPENSSL_LIBRARIES}")
+    message("OPENSSL_VERSION    =${OPENSSL_VERSION}")
+    
 endif()
 
 

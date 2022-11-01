@@ -35,6 +35,11 @@ if(COPROTO_IN_BUILD_TREE)
 		set(COPROTO_STAGE "${CMAKE_CURRENT_LIST_DIR}/../out/install/${COPROTO_CONFIG}")
 		get_filename_component(COPROTO_STAGE ${COPROTO_STAGE} ABSOLUTE)
 	endif()
+
+	
+	if(NOT COPROTO_THIRDPARTY_CLONE_DIR)
+		get_filename_component(COPROTO_THIRDPARTY_CLONE_DIR "${CMAKE_CURRENT_LIST_DIR}/../out/" ABSOLUTE)
+	endif()
 else()
     # we currenty are in install tree, <install-prefix>/lib/cmake/vole-psi
 	if(NOT DEFINED COPROTO_STAGE)
@@ -46,3 +51,4 @@ endif()
 if(NOT coproto_FIND_QUIETLY)
     message(STATUS "Option: COPROTO_STAGE = ${COPROTO_STAGE}")
 endif()
+

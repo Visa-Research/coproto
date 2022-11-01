@@ -1,8 +1,8 @@
 
 set(GIT_REPOSITORY      "https://github.com/ladnir/macoro.git")
-#set(GIT_TAG             "899b03463561edd3df4d41886c5773ea18bae0e1" )
+set(GIT_TAG             "1b35b3780d62937fce7a93e34174a692f309df52" )
 
-set(CLONE_DIR "${CMAKE_CURRENT_LIST_DIR}/macoro")
+set(CLONE_DIR "${COPROTO_THIRDPARTY_CLONE_DIR}/macoro")
 set(BUILD_DIR "${CLONE_DIR}/out/build/${COPROTO_CONFIG}")
 set(LOG_FILE  "${CMAKE_CURRENT_LIST_DIR}/log-macoro.txt")
 
@@ -36,7 +36,7 @@ if (NOT MACORO_FOUND
 
     message("============= Building macoro =============")
     if(NOT EXISTS ${CLONE_DIR})
-        run(NAME "Cloning ${GIT_REPOSITORY}" CMD ${DOWNLOAD_CMD} WD ${CMAKE_CURRENT_LIST_DIR})
+        run(NAME "Cloning ${GIT_REPOSITORY}" CMD ${DOWNLOAD_CMD} WD ${COPROTO_THIRDPARTY_CLONE_DIR})
     endif()
 
     #run(NAME "Checkout ${GIT_TAG} " CMD ${CHECKOUT_CMD}  WD ${CLONE_DIR})
@@ -50,10 +50,12 @@ else()
 endif()
 
 install(CODE "
-    execute_process(
-        COMMAND ${SUDO} \${CMAKE_COMMAND} --install ${BUILD_DIR} --config ${CMAKE_BUILD_TYPE} --prefix \${CMAKE_INSTALL_PREFIX}
-        WORKING_DIRECTORY ${CLONE_DIR}
-        RESULT_VARIABLE RESULT
-        COMMAND_ECHO STDOUT
-    )
+    if(NOT CMAKE_INSTALL_PREFIX STREQUAL \"${COPROTO_STAGE}\")
+        execute_process(
+            COMMAND ${SUDO} \${CMAKE_COMMAND} --install ${BUILD_DIR} --config ${CMAKE_BUILD_TYPE} --prefix \${CMAKE_INSTALL_PREFIX}
+            WORKING_DIRECTORY ${CLONE_DIR}
+            RESULT_VARIABLE RESULT
+            COMMAND_ECHO STDOUT
+        )
+    endif()
 ")
