@@ -48,7 +48,3 @@ else()
 	endif()
 endif()
 
-if(NOT coproto_FIND_QUIETLY)
-    message(STATUS "Option: COPROTO_STAGE = ${COPROTO_STAGE}")
-endif()
-

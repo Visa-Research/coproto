@@ -7,7 +7,7 @@ add_executable(main "src.cpp")
 
 message("CMAKE_PREFIX_PATH ${CMAKE_PREFIX_PATH}")
 
-find_package(coproto REQUIRED HINTS ${COPROTO_HINT})
+find_package(coproto REQUIRED HINTS ${COPROTO_HINT} COMPONENTS boost )
 
 target_link_libraries(main coproto::coproto)
 target_link_libraries(main coproto::coproto)

@@ -88,14 +88,21 @@ endif()
 set_property(TARGET coproto PROPERTY VERSION ${coproto_VERSION})
 
 # generate the version file for the config file
-write_basic_package_version_file(
-  "${CMAKE_CURRENT_BINARY_DIR}/coprotoConfigVersion.cmake"
-  VERSION "${coproto_VERSION_MAJOR}.${coproto_VERSION_MINOR}.${coproto_VERSION_PATCH}"
-  COMPATIBILITY AnyNewerVersion
-)
+configure_file(
+  "${CMAKE_CURRENT_LIST_DIR}/../cmake/buildOptions.cmake.in"
+  "${CMAKE_CURRENT_BINARY_DIR}/buildOptions.cmake")
+configure_file(
+  "${CMAKE_CURRENT_LIST_DIR}/../cmake/ConfigVersion.cmake.in"
+  "${CMAKE_CURRENT_BINARY_DIR}/coprotoConfigVersion.cmake" COPYONLY)
+#write_basic_package_version_file(
+#  "${CMAKE_CURRENT_BINARY_DIR}/coprotoConfigVersion.cmake"
+#  VERSION "${coproto_VERSION_MAJOR}.${coproto_VERSION_MINOR}.${coproto_VERSION_PATCH}"
+#  COMPATIBILITY AnyNewerVersion
+#)
 
 # install the configuration file
 install(FILES
+          "${CMAKE_CURRENT_BINARY_DIR}/buildOptions.cmake"
           "${CMAKE_CURRENT_BINARY_DIR}/coprotoConfig.cmake"
           "${CMAKE_CURRENT_BINARY_DIR}/coprotoConfigVersion.cmake"
           "${CMAKE_CURRENT_BINARY_DIR}/preamble.cmake"

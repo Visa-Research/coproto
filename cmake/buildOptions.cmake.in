@@ -1,0 +1,21 @@
+
+set(coproto_VERSION_MAJOR     @coproto_VERSION_MAJOR@)
+set(coproto_VERSION_MINOR     @coproto_VERSION_MINOR@)
+set(coproto_VERSION_PATCH     @coproto_VERSION_PATCH@)
+
+# compile the library with c++20 support
+set(COPROTO_CPP20 @COPROTO_CPP20@)
+
+set(COPROTO_ENABLE_BOOST @COPROTO_ENABLE_BOOST@)
+set(COPROTO_ENABLE_OPENSSL @COPROTO_ENABLE_OPENSSL@)
+
+# compile the library logging support
+set(COPROTO_LOGGING @COPROTO_LOGGING@) 
+
+set(COPROTO_CPP_VER @COPROTO_CPP_VER@)
+set(COPROTO_ENABLE_ASSERTS @COPROTO_ENABLE_ASSERTS@)
+
+
+set(coproto_cpp20_FOUND ${COPROTO_CPP20})
+set(coproto_boost_FOUND ${COPROTO_ENABLE_BOOST})
+set(coproto_openssl_FOUND ${COPROTO_ENABLE_OPENSSL})

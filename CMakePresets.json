@@ -1,101 +1,108 @@
 {
-    "version": 2,
-    "configurePresets": [
-        {
-            "name": "linux",
-            "displayName": "Linux Debug",
-            "description": "Target the Windows Subsystem for Linux (WSL) or a remote Linux system.",
-            "generator": "Ninja",
-            "binaryDir": "${sourceDir}/out/build/${presetName}",
-            "cacheVariables": {
-                "CMAKE_BUILD_TYPE": "Debug",
-                "COPROTO_FETCH_AUTO": "ON",
-                "COPROTO_ENABLE_BOOST": "ON",
-                "COPROTO_ENABLE_OPENSSL": true,
-                "COPROTO_CPP_VER": "17",
-                "VERBOSE_FETCH": true,
-                "CMAKE_INSTALL_PREFIX": "${sourceDir}/out/install/${presetName}"
-            },
-            "vendor": {
-                "microsoft.com/VisualStudioSettings/CMake/1.0": {
-                    "hostOS": [
-                        "Linux"
-                    ]
-                },
-                "microsoft.com/VisualStudioRemoteSettings/CMake/1.0": {
-                    "sourceDir": "$env{HOME}/.vs/$ms{projectDirName}"
-                }
-            }
+  "version": 2,
+  "configurePresets": [
+    {
+      "name": "linux",
+      "displayName": "Linux Debug",
+      "description": "Target the Windows Subsystem for Linux (WSL) or a remote Linux system.",
+      "generator": "Ninja",
+      "binaryDir": "${sourceDir}/out/build/${presetName}",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Debug",
+        "COPROTO_FETCH_AUTO": "ON",
+        "COPROTO_ENABLE_BOOST": "ON",
+        "COPROTO_ENABLE_OPENSSL": true,
+        "COPROTO_CPP_VER": "17",
+        "VERBOSE_FETCH": true,
+        "CMAKE_INSTALL_PREFIX": "${sourceDir}/out/install/${presetName}"
+      },
+      "vendor": {
+        "microsoft.com/VisualStudioSettings/CMake/1.0": {
+          "hostOS": [
+            "Linux"
+          ]
         },
-        {
-            "name": "x64-Debug",
-            "displayName": "Windows x64 Debug",
-            "description": "Target Windows with the Visual Studio development environment.",
-            "generator": "Ninja",
-            "binaryDir": "${sourceDir}/out/build/${presetName}",
-            "architecture": {
-                "value": "x64",
-                "strategy": "external"
-            },
-            "cacheVariables": {
-                "CMAKE_BUILD_TYPE": "Debug",
-                "COPROTO_FETCH_AUTO": "ON",
-                "COPROTO_ENABLE_BOOST": "ON",
-                "COPROTO_CPP_VER": "14",
-                "VERBOSE_FETCH": true,
-                "CMAKE_INSTALL_PREFIX": "${sourceDir}/out/install/${presetName}"
-            },
-            "vendor": {
-                "microsoft.com/VisualStudioSettings/CMake/1.0": {
-                    "hostOS": [
-                        "Windows"
-                    ]
-                }
-            }
-        },
-        {
-            "name": "x64-Release",
-            "displayName": "Windows x64 Release",
-            "description": "Target Windows with the Visual Studio development environment.",
-            "generator": "Ninja",
-            "binaryDir": "${sourceDir}/out/build/${presetName}",
-            "architecture": {
-                "value": "x64",
-                "strategy": "external"
-            },
-            "cacheVariables": {
-                "CMAKE_BUILD_TYPE": "RelWithDebInfo",
-                "COPROTO_FETCH_AUTO": "ON",
-                "COPROTO_ENABLE_BOOST": false,
-                "COPROTO_ENABLE_OPENSSL": false,
-                "COPROTO_CPP_VER": "14",
-                "VERBOSE_FETCH": true,
-                "CMAKE_INSTALL_PREFIX": "${sourceDir}/out/install/${presetName}"
-            },
-            "vendor": {
-                "microsoft.com/VisualStudioSettings/CMake/1.0": {
-                    "hostOS": [
-                        "Windows"
-                    ]
-                }
-            }
-        },
-        {
-            "name": "osx",
-            "displayName": "Custom configure preset",
-            "description": "Sets Ninja generator, build and install directory",
-            "generator": "Xcode",
-            "binaryDir": "${sourceDir}/out/build/${presetName}",
-            "cacheVariables": {
-                "CMAKE_BUILD_TYPE": "Debug",
-                "COPROTO_FETCH_AUTO": "ON",
-                "COPROTO_ENABLE_BOOST": true,
-                "COPROTO_ENABLE_OPENSSL": true,
-                "COPROTO_CPP_VER": "14",
-                "VERBOSE_FETCH": true,
-                "CMAKE_PREFIX_PATH": "/usr/local/opt/openssl",
-                "CMAKE_INSTALL_PREFIX": "${sourceDir}/out/install/${presetName}"
-            }
+        "microsoft.com/VisualStudioRemoteSettings/CMake/1.0": {
+          "sourceDir": "$env{HOME}/.vs/$ms{projectDirName}"
         }
-    ]
+      }
+    },
+    {
+      "name": "x64-Debug",
+      "displayName": "Windows x64 Debug",
+      "description": "Target Windows with the Visual Studio development environment.",
+      "generator": "Ninja",
+      "binaryDir": "${sourceDir}/out/build/${presetName}",
+      "architecture": {
+        "value": "x64",
+        "strategy": "external"
+      },
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Debug",
+        "COPROTO_FETCH_AUTO": "ON",
+        "COPROTO_ENABLE_BOOST": "ON",
+        "COPROTO_CPP_VER": "14",
+        "VERBOSE_FETCH": true,
+        "CMAKE_INSTALL_PREFIX": "${sourceDir}/out/install/${presetName}"
+      },
+      "vendor": {
+        "microsoft.com/VisualStudioSettings/CMake/1.0": {
+          "hostOS": [
+            "Windows"
+          ]
+        }
+      }
+    },
+    {
+      "name": "x64-Release",
+      "displayName": "Windows x64 Release",
+      "description": "Target Windows with the Visual Studio development environment.",
+      "generator": "Ninja",
+      "binaryDir": "${sourceDir}/out/build/${presetName}",
+      "architecture": {
+        "value": "x64",
+        "strategy": "external"
+      },
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "RelWithDebInfo",
+        "COPROTO_FETCH_AUTO": "ON",
+        "COPROTO_ENABLE_BOOST": false,
+        "COPROTO_ENABLE_OPENSSL": false,
+        "COPROTO_CPP_VER": "14",
+        "VERBOSE_FETCH": true,
+        "CMAKE_INSTALL_PREFIX": "${sourceDir}/out/install/${presetName}"
+      },
+      "vendor": {
+        "microsoft.com/VisualStudioSettings/CMake/1.0": {
+          "hostOS": [
+            "Windows"
+          ]
+        }
+      }
+    },
+    {
+      "name": "osx",
+      "displayName": "Custom configure preset",
+      "description": "Sets Ninja generator, build and install directory",
+      "generator": "Xcode",
+      "binaryDir": "${sourceDir}/out/build/${presetName}",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Debug",
+        "COPROTO_FETCH_AUTO": "ON",
+        "COPROTO_ENABLE_BOOST": true,
+        "COPROTO_ENABLE_OPENSSL": true,
+        "COPROTO_CPP_VER": "14",
+        "VERBOSE_FETCH": true,
+        "CMAKE_PREFIX_PATH": "/usr/local/opt/openssl",
+        "CMAKE_INSTALL_PREFIX": "${sourceDir}/out/install/${presetName}"
+      },
+      "vendor": {
+        "microsoft.com/VisualStudioSettings/CMake/1.0": {
+          "hostOS": [
+            "macOS"
+          ]
+        }
+      }
+    }
+  ]
 }

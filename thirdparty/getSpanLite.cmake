@@ -7,8 +7,6 @@ set(CLONE_DIR "${COPROTO_THIRDPARTY_CLONE_DIR}/${DEP_NAME}")
 set(BUILD_DIR "${CLONE_DIR}/build/${COPROTO_CONFIG}")
 set(LOG_FILE  "${CMAKE_CURRENT_LIST_DIR}/log-${DEP_NAME}.txt")
 
-message("\n\nCLONE_DIR=${CLONE_DIR}\n\n")
-
 include("${CMAKE_CURRENT_LIST_DIR}/fetch.cmake")
 
 if(NOT span-lite_FOUND)

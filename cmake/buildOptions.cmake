@@ -38,3 +38,5 @@ if(NOT COPROTO_CPP_VER EQUAL 20 AND
 
 	message(FATAL_ERROR "Unknown c++ version. COPROTO_CPP_VER=${COPROTO_CPP_VER}")
 endif()
+message(STATUS "Option: COPROTO_STAGE = ${COPROTO_STAGE}")
+
