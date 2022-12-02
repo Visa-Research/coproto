@@ -18,7 +18,7 @@ namespace coproto
 		{
 			assert(sizeof(t) <= v.size());
 			memcpy(&t, v.data(), sizeof(t));
-			memcpy(v.data(), v.data() + sizeof(t), v.size() - sizeof(t));
+			memmove(v.data(), v.data() + sizeof(t), v.size() - sizeof(t));
 			v.resize(v.size() - sizeof(t));
 		}
 		template<typename T>
@@ -39,7 +39,6 @@ namespace coproto
 			auto& sImpl = sender.mImpl;
 
 			std::vector<u8> sendBuff(14);
-			std::vector<u8> recvBuff(14);
 
 
 			for (u64 i = 0; i < sendBuff.size(); ++i)
