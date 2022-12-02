@@ -25,21 +25,20 @@ target_link_libraries(coproto Threads::Threads)
 
 if(COPROTO_CPP20)
     if(MSVC)
-        target_compile_options(coproto PUBLIC
-            "/std:c++${COPROTO_CPP_VER}"
-            "/fsanitize=address"
+        target_compile_options(coproto PRIVATE
+            $<$<COMPILE_LANGUAGE:CXX>:"/std:c++${COPROTO_CPP_VER}">
         )
     
     else()
-        target_compile_options(coproto PUBLIC
-            "-std=c++${COPROTO_CPP_VER}" "-fcoroutines"
+        target_compile_options(coproto PRIVATE
+            $<$<COMPILE_LANGUAGE:CXX>:"-std=c++${COPROTO_CPP_VER}" "-fcoroutines">
         )
     endif()
 else()
     if(APPLE)
-        target_compile_options(coproto PUBLIC
-            "-std=c++${COPROTO_CPP_VER}"
-        )
+        target_compile_options(coproto PRIVATE
+            $<$<COMPILE_LANGUAGE:CXX>:"-std=c++${COPROTO_CPP_VER}">
+            )
     else()
         set_target_properties(coproto
             PROPERTIES
@@ -58,7 +57,21 @@ if(COPROTO_ENABLE_BOOST)
         target_link_libraries(coproto OpenSSL::SSL)
     endif()
 
-    target_compile_definitions(coproto PUBLIC "_WIN32_WINNT=0x601")
+    if(MSVC)
+        target_compile_definitions(coproto PUBLIC "_WIN32_WINNT=0x601")
+    endif()
+endif()
+
+if(COPROTO_ASAN)
+    message("Warning: ASAN is enabled for coproto.")
+    if(MSVC)
+        target_compile_options(coproto PRIVATE 
+            "/fsanitize=address")
+    else()
+        target_compile_options(coproto PRIVATE 
+            "-fsanitize=address")
+        target_link_options(coproto PUBLIC "-fsanitize=address")
+    endif()
 endif()
 
 target_link_libraries(coproto function2::function2)
