@@ -26,18 +26,17 @@ target_link_libraries(coproto Threads::Threads)
 if(COPROTO_CPP20)
     if(MSVC)
         target_compile_options(coproto PRIVATE
-            $<$<COMPILE_LANGUAGE:CXX>:"/std:c++${COPROTO_CPP_VER}">
+            $<$<COMPILE_LANGUAGE:CXX>:/std:c++${COPROTO_CPP_VER}>
         )
     
     else()
-        target_compile_options(coproto PRIVATE
-            $<$<COMPILE_LANGUAGE:CXX>:"-std=c++${COPROTO_CPP_VER}" "-fcoroutines">
-        )
+        target_compile_options(coproto PRIVATE $<$<COMPILE_LANGUAGE:CXX>:-std=c++${COPROTO_CPP_VER})
+        target_compile_options(coproto PRIVATE $<$<COMPILE_LANGUAGE:CXX>:-fcoroutines>)
     endif()
 else()
     if(APPLE)
         target_compile_options(coproto PRIVATE
-            $<$<COMPILE_LANGUAGE:CXX>:"-std=c++${COPROTO_CPP_VER}">
+            $<$<COMPILE_LANGUAGE:CXX>:-std=c++${COPROTO_CPP_VER}>
             )
     else()
         set_target_properties(coproto
