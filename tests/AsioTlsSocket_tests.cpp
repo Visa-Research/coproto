@@ -68,6 +68,8 @@ namespace coproto
                 X509_NAME_oneline(name, &str[0], str.size());
                 str.resize(strlen(str.c_str()));
 
+                X509_free(cert);
+
                 OpenSslX509 cx509 = getX509(s0);
                 auto sx509 = getX509(s1);
                 if (str != cx509.oneline())
