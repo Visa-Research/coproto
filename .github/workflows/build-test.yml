@@ -60,8 +60,8 @@ jobs:
 
       - name: install prefix test
         run: |
-            python3 build.py --setup --install=~/install
-            python3 build.py --install=~/install
+            python3 build.py --setup --install=~/install  -DCMAKE_BUILD_TYPE=RELWITHDEBINFO
+            python3 build.py --install=~/install  -DCMAKE_BUILD_TYPE=RELWITHDEBINFO
             cd cmake/testProject
             cmake -S . -B out/  -DCMAKE_BUILD_TYPE=Release -DCMAKE_PREFIX_PATH=~/install
             cmake --build out/
@@ -72,8 +72,8 @@ jobs:
 
       - name: install test
         run: |
-            python3 build.py --setup --install --sudo
-            python3 build.py --install --sudo
+            python3 build.py --setup --install --sudo  -DCMAKE_BUILD_TYPE=RELWITHDEBINFO
+            python3 build.py --install --sudo  -DCMAKE_BUILD_TYPE=RELWITHDEBINFO
             cd cmake/testProject
             cmake -S . -B out/  -DCMAKE_BUILD_TYPE=Release
             cmake --build out/
