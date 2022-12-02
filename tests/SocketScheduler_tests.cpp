@@ -18,7 +18,7 @@ namespace coproto
 		{
 			assert(sizeof(t) <= v.size());
 			memcpy(&t, v.data(), sizeof(t));
-			memcpy(v.data(), v.data() + sizeof(t), v.size() - sizeof(t));
+			memmove(v.data(), v.data() + sizeof(t), v.size() - sizeof(t));
 			v.resize(v.size() - sizeof(t));
 		}
 		template<typename T>
