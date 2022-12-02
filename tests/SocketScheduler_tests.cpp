@@ -39,6 +39,7 @@ namespace coproto
 			auto& sImpl = sender.mImpl;
 
 			std::vector<u8> sendBuff(14);
+			std::vector<u8> recvBuff(14);
 
 
 			for (u64 i = 0; i < sendBuff.size(); ++i)
