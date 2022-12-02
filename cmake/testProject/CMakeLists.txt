@@ -15,3 +15,16 @@ target_link_libraries(main coproto::coproto)
 message(STATUS "COPROTO_CPP20          = ${COPROTO_CPP20}")
 message(STATUS "COPROTO_ENABLE_BOOST   = ${COPROTO_ENABLE_BOOST}")
 message(STATUS "COPROTO_LOGGING        = ${COPROTO_LOGGING}")
+
+
+
+
+if(MSVC)
+    target_compile_options( main PRIVATE
+        $<$<COMPILE_LANGUAGE:CXX>:/std=c++${COPROTO_CPP_VER}>
+    )
+else()
+    target_compile_options( main PRIVATE
+        $<$<COMPILE_LANGUAGE:CXX>:-std=c++${COPROTO_CPP_VER}>
+    )
+endif()
