@@ -16,7 +16,7 @@ configure_file(config.h.in "config.h" )
 
 if(MSVC)
     target_compile_options( coproto_tests PRIVATE
-        $<$<COMPILE_LANGUAGE:CXX>:/std=c++${COPROTO_CPP_VER}>
+        $<$<COMPILE_LANGUAGE:CXX>:/std:c++${COPROTO_CPP_VER}>
     )
 else()
     target_compile_options( coproto_tests PRIVATE
