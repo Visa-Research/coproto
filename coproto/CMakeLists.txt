@@ -1,5 +1,4 @@
 
-include("${CMAKE_CURRENT_LIST_DIR}/../cmake/coprotoFindDeps.cmake")
 
 
 add_library(coproto STATIC 

@@ -18,6 +18,7 @@ set(COPROTO_BUILD ON)
 
 include(cmake/preamble.cmake)
 include(cmake/buildOptions.cmake)
+include(cmake/coprotoFindDeps.cmake)
 
 add_subdirectory ("coproto")
 add_subdirectory ("tests")

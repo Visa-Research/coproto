@@ -8,6 +8,5 @@ if(NOT EXISTS "${COPROTO_BUILD_DIR}")
     message(FATAL_ERROR "failed to find the coproto build directory. Looked at: ${COPROTO_BUILD_DIR}")
 endif()
 
-include("${COPROTO_BUILD_DIR}/buildOptions.cmake")
-include("${COPROTO_BUILD_DIR}/coprotoFindDeps.cmake")
 include("${COPROTO_BUILD_DIR}/coproto/coprotoConfig.cmake")
+include("${COPROTO_BUILD_DIR}/coproto/coprotoFindDeps.cmake")

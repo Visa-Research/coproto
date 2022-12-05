@@ -29,7 +29,7 @@ if (NOT MACORO_FOUND
                        -DCMAKE_BUILD_TYPE:STRING=${CMAKE_BUILD_TYPE} 
                        -DMACORO_FETCH_OPTIONAL=ON
                        -DMACORO_FETCH_VARIANT=ON
-                       -DVERBOSE_FETCH=${VERBOSE_FETCH} 
+                       -DVERBOSE_FETCH=true
                        -DMACORO_CPP_VER=${COPROTO_CPP_VER}
                        -DMACORO_PIC=${COPROTO_PIC}
                        -DMACORO_ASAN=${COPROTO_ASAN}
