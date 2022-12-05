@@ -25,6 +25,8 @@ message(STATUS "Option: COPROTO_ENABLE_ASSERTS  = ${COPROTO_ENABLE_ASSERTS}\n")
 option(COPROTO_ASAN "build the library with asan enabled." false)
 option(COPROTO_PIC "build the library with -fPIC" OFF)
 
+
+set(COPROTO_BUILD_TYPE ${CMAKE_BUILD_TYPE})
 if(COPROTO_CPP_VER EQUAL 20)
 	set(COPROTO_CPP20 ON)
 else()

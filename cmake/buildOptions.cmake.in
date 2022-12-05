@@ -28,6 +28,8 @@ unset(coproto_RELEASE_FOUND CACHE)
 unset(coproto_relwithdebinfo_FOUND CACHE)
 unset(coproto_RelWithDebInfo_FOUND CACHE)
 unset(coproto_RELWITHDEBINFO_FOUND CACHE)
+
+set(COPROTO_BUILD_TYPE "${CMAKE_BUILD_TYPE}")
 string( TOLOWER "${CMAKE_BUILD_TYPE}" CMAKE_BUILD_TYPE_lower )
 if(CMAKE_BUILD_TYPE_lower STREQUAL "debug")
 	set(coproto_debug_FOUND true)

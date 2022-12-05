@@ -35,6 +35,10 @@ if(COPROTO_FETCH_AUTO AND NOT DEFINED COPROTO_FETCH_MACORO AND COPROTO_BUILD)
     set(COPROTO_FETCH_MACORO ON)
 endif()
 
+if(NOT DEFINED COPROTO_CPP_VER)
+    message(FATAL_ERROR "COPROTO_CPP_VER not defined")
+endif()
+
 set(macoro_options cpp_${COPROTO_CPP_VER})
 if(COPROTO_PIC)
     set(macoro_options ${macoro_options} pic)
@@ -48,10 +52,10 @@ else()
 endif()
 
 
-if(    "${CMAKE_BUILD_TYPE}" STREQUAL "Release"
-    OR "${CMAKE_BUILD_TYPE}" STREQUAL "Debug"
-    OR "${CMAKE_BUILD_TYPE}" STREQUAL "RelWithDebInfo" )
-    set(macoro_options ${macoro_options} ${CMAKE_BUILD_TYPE} )
+if(    "${COPROTO_BUILD_TYPE}" STREQUAL "Release"
+    OR "${COPROTO_BUILD_TYPE}" STREQUAL "Debug"
+    OR "${COPROTO_BUILD_TYPE}" STREQUAL "RelWithDebInfo" )
+    set(macoro_options ${macoro_options} ${COPROTO_BUILD_TYPE} )
 endif()
 
 if (COPROTO_FETCH_MACORO)
