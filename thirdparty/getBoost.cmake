@@ -109,7 +109,7 @@ if(NOT EXISTS ${CLONE_DIR} OR NOT Boost_FOUND)
 
     message("log ${LOG_FILE}\n==========================================")
 else()
-    message("Boost already fetched.")
+    message("Boost already fetched. ${Boost_LIBRARIES} ")
 endif()
 
 if(MSVC)

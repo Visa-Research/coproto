@@ -2,7 +2,7 @@
 
 
 message(STATUS "Option: CMAKE_INSTALL_PREFIX    = ${CMAKE_INSTALL_PREFIX}")
-message(STATUS "Option: CMAKE_BUILD_TYPE        = ${CMAKE_BUILD_TYPE}\n\tRelease\n\tDebug\n\tRELWITHDEBINFO")
+message(STATUS "Option: CMAKE_BUILD_TYPE        = ${CMAKE_BUILD_TYPE}\n\tRelease\n\tDebug\n\tRelWithDebInfo")
 message(STATUS "Option: COPROTO_FETCH_AUTO      = ${COPROTO_FETCH_AUTO}")
 message(STATUS "Option: COPROTO_FETCH_SPAN      = ${COPROTO_FETCH_SPAN}")
 message(STATUS "Option: COPROTO_FETCH_FUNCTION2 = ${COPROTO_FETCH_FUNCTION2}")

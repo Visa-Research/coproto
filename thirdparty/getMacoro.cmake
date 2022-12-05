@@ -1,6 +1,6 @@
 
 set(GIT_REPOSITORY      "https://github.com/ladnir/macoro.git")
-set(GIT_TAG             "3652ae2360c35118a223ecd6035ef8b73b4c00ab" )
+set(GIT_TAG             "179f1a5b1ee999b155211ec3eef79af33b8e7251" )
 
 set(CLONE_DIR "${COPROTO_THIRDPARTY_CLONE_DIR}/macoro")
 set(BUILD_DIR "${CLONE_DIR}/out/build/${COPROTO_CONFIG}")
@@ -32,6 +32,7 @@ if (NOT MACORO_FOUND
                        -DVERBOSE_FETCH=${VERBOSE_FETCH} 
                        -DMACORO_CPP_VER=${COPROTO_CPP_VER}
                        -DMACORO_PIC=${COPROTO_PIC}
+                       -DMACORO_ASAN=${COPROTO_ASAN}
                        -DMACORO_THIRDPARTY_CLONE_DIR=${COPROTO_THIRDPARTY_CLONE_DIR}
                        )
     set(BUILD_CMD     ${CMAKE_COMMAND} --build ${BUILD_DIR} --config ${CMAKE_BUILD_TYPE})

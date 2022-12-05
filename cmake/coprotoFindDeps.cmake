@@ -34,15 +34,36 @@ endif()
 if(COPROTO_FETCH_AUTO AND NOT DEFINED COPROTO_FETCH_MACORO AND COPROTO_BUILD)
     set(COPROTO_FETCH_MACORO ON)
 endif()
-set(VERBOSE_FETCH ON)
+
+set(macoro_options cpp_${COPROTO_CPP_VER})
+if(COPROTO_PIC)
+    set(macoro_options ${macoro_options} pic)
+else()
+    set(macoro_options ${macoro_options} no_pic)
+endif()
+if(COPROTO_ASAN)
+    set(macoro_options ${macoro_options} asan)
+else()
+    set(macoro_options ${macoro_options} no_asan)
+endif()
+
+
+if(    "${CMAKE_BUILD_TYPE}" STREQUAL "Release"
+    OR "${CMAKE_BUILD_TYPE}" STREQUAL "Debug"
+    OR "${CMAKE_BUILD_TYPE}" STREQUAL "RelWithDebInfo" )
+    set(macoro_options ${macoro_options} ${CMAKE_BUILD_TYPE} )
+endif()
+
 if (COPROTO_FETCH_MACORO)
-    find_package(macoro QUIET ${COPROTO_FIND_PACKAGE_OPTIONS})
+    find_package(macoro ${COPROTO_FIND_PACKAGE_OPTIONS} COMPONENTS ${macoro_options})
     if(TARGET macoro::macoro)
         set(MACORO_FOUND ON)
+    else()
+        set(MACORO_FOUND OFF)
     endif()
     include("${CMAKE_CURRENT_LIST_DIR}/../thirdparty/getMacoro.cmake")
 endif()
-find_package(macoro REQUIRED ${COPROTO_FIND_PACKAGE_OPTIONS})
+find_package(macoro REQUIRED ${COPROTO_FIND_PACKAGE_OPTIONS} COMPONENTS ${macoro_options})
 
 if((MACORO_CPP_20 AND NOT COPROTO_CPP20) OR (NOT MACORO_CPP_20 AND COPROTO_CPP20))
     message(FATAL_ERROR "MACORO and coproto do not match on CPP 20 config")
@@ -79,7 +100,6 @@ macro(FIND_BOOST)
         option(Boost_LIB_PREFIX "Boost_LIB_PREFIX" "lib")
     endif()
     #set(Boost_DEBUG ON)  #<---------- Real life saver
- 
     find_package(Boost 1.77.0 COMPONENTS system thread regex ${ARGS} ${COPROTO_FIND_PACKAGE_OPTIONS})
 endmacro()
 
@@ -97,7 +117,7 @@ if(COPROTO_ENABLE_BOOST)
         message(FATAL_ERROR "Failed to find boost 1.77. When building coproto, add -DCOPROTO_FETCH_BOOST=ON or -DCOPROTO_FETCH_AUTO=ON to auto download.")
     endif()
 
-    message(STATUS "Boost_LIB: ${Boost_LIBRARIES}" )
+    message(STATUS "\n\nBoost_LIB: ${Boost_LIBRARIES}" )
     message(STATUS "Boost_INC: ${Boost_INCLUDE_DIR}\n\n" )
 endif()
 
