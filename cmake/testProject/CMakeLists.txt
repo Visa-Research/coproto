@@ -7,7 +7,7 @@ add_executable(main "src.cpp")
 
 message("CMAKE_PREFIX_PATH ${CMAKE_PREFIX_PATH}")
 
-find_package(coproto REQUIRED HINTS ${COPROTO_HINT} COMPONENTS boost )
+find_package(coproto REQUIRED HINTS ${COPROTO_HINT} COMPONENTS boost asan no_pic RelWithDebInfo )
 
 target_link_libraries(main coproto::coproto)
 target_link_libraries(main coproto::coproto)

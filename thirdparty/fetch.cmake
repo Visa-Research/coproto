@@ -17,39 +17,15 @@ function(RUN)
     )
     message("${PARSED_ARGS_NAME}")
     
-    file(APPEND ${LOG_FILE}
-        "\n############# ${PARSED_ARGS_NAME} ###########\n"
-        "${PARSED_ARGS_CMD}\n"
-        "#############################################\n"
+    execute_process(
+        COMMAND ${PARSED_ARGS_CMD}
+        WORKING_DIRECTORY ${PARSED_ARGS_WD}
+        RESULT_VARIABLE RESULT
+        COMMAND_ECHO STDOUT
     )
-
-
-    
-    if(NOT DEFINED VERBOSE_FETCH OR NOT VERBOSE_FETCH)
-        execute_process(
-            COMMAND ${PARSED_ARGS_CMD}
-            WORKING_DIRECTORY ${PARSED_ARGS_WD}
-            RESULT_VARIABLE RESULT
-            COMMAND_ECHO STDOUT
-            OUTPUT_FILE ${LOG_FILE} 
-            ERROR_FILE ${LOG_FILE} 
-            OUTPUT_QUIET
-        )
         
-        if(RESULT)
-            message(FATAL_ERROR "${PARSED_ARGS_NAME} failed (${RESULT}). See ${LOG_FILE}")
-        endif()
-    else()
-        execute_process(
-            COMMAND ${PARSED_ARGS_CMD}
-            WORKING_DIRECTORY ${PARSED_ARGS_WD}
-            RESULT_VARIABLE RESULT
-            COMMAND_ECHO STDOUT
-        )
-        
-        if(RESULT)
-            message(FATAL_ERROR "${PARSED_ARGS_NAME} failed (${RESULT}).")
-        endif()
+    if(RESULT)
+        message(FATAL_ERROR "${PARSED_ARGS_NAME} failed (${RESULT}).")
     endif()
 endfunction()
 
@@ -68,13 +44,6 @@ function(VSRUN)
     )
     message("${PARSED_ARGS_NAME}")
 
-    if(DEFINED LOG_FILE)
-        file(APPEND ${LOG_FILE}
-            "vvvvvvvvvvvvv VSRUN ${PARSED_ARGS_NAME} vvvvvvvvvvvv\n"
-            "${PARSED_ARGS_CMD}\n"
-            "^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n"
-        )
-    endif()
     
     set(TEMP_PATH "${CMAKE_CURRENT_LIST_DIR}/runvs-${PARSED_ARGS_NAME}_delete-me.ps1")
     file(WRITE ${TEMP_PATH}  "${FINDVS}\n\n" ${PARSED_ARGS_CMD})
