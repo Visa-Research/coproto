@@ -3,7 +3,6 @@ cmake_policy(SET CMP0057 NEW)
 cmake_policy(SET CMP0045 NEW)
 cmake_policy(SET CMP0074 NEW)
 
-include("${CMAKE_CURRENT_LIST_DIR}/preamble.cmake")
 
 if(NOT coproto_FIND_QUIETLY)
     message(STATUS "Option: COPROTO_STAGE = ${COPROTO_STAGE}")
