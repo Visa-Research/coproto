@@ -1,6 +1,6 @@
 
 set(GIT_REPOSITORY      "https://github.com/ladnir/macoro.git")
-set(GIT_TAG             "179f1a5b1ee999b155211ec3eef79af33b8e7251" )
+set(GIT_TAG             "4dcd7892efe1a1b028df6326b3b7b628d6aebdc3" )
 
 set(CLONE_DIR "${COPROTO_THIRDPARTY_CLONE_DIR}/macoro")
 set(BUILD_DIR "${CLONE_DIR}/out/build/${COPROTO_CONFIG}")
@@ -26,7 +26,9 @@ if (NOT MACORO_FOUND
     set(DOWNLOAD_CMD  ${GIT} clone ${GIT_REPOSITORY})
     set(CHECKOUT_CMD  ${GIT} checkout ${GIT_TAG})
     set(CONFIGURE_CMD ${CMAKE_COMMAND} -S ${CLONE_DIR} -B ${BUILD_DIR} -DCMAKE_INSTALL_PREFIX=${CMAKE_INSTALL_PREFIX}
+                       "-DCMAKE_PREFIX_PATH=${CMAKE_PREFIX_PATH_STR}"
                        -DCMAKE_BUILD_TYPE:STRING=${CMAKE_BUILD_TYPE} 
+                       -DMACORO_NO_SYSTEM_PATH=${COPROTO_NO_SYSTEM_PATH}
                        -DMACORO_FETCH_OPTIONAL=ON
                        -DMACORO_FETCH_VARIANT=ON
                        -DVERBOSE_FETCH=true

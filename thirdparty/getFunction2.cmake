@@ -4,7 +4,7 @@ set(GIT_REPOSITORY      https://github.com/Naios/function2.git)
 set(GIT_TAG             "02ca99831de59c7c3a4b834789260253cace0ced" )
 
 set(CLONE_DIR "${COPROTO_THIRDPARTY_CLONE_DIR}/${DEP_NAME}")
-set(BUILD_DIR "${CLONE_DIR}/build/${COPROTO_CONFIG}")
+set(BUILD_DIR "${CLONE_DIR}/out/build/${COPROTO_CONFIG}")
 set(LOG_FILE  "${CMAKE_CURRENT_LIST_DIR}/log-${DEP_NAME}.txt")
 
 

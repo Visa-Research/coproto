@@ -4,7 +4,7 @@ set(GIT_REPOSITORY      https://github.com/martinmoene/span-lite.git)
 set(GIT_TAG             "2987dd8d3b8fe7c861e3c3f879234cc1c412f03f" )
 
 set(CLONE_DIR "${COPROTO_THIRDPARTY_CLONE_DIR}/${DEP_NAME}")
-set(BUILD_DIR "${CLONE_DIR}/build/${COPROTO_CONFIG}")
+set(BUILD_DIR "${CLONE_DIR}/out/build/${COPROTO_CONFIG}")
 set(LOG_FILE  "${CMAKE_CURRENT_LIST_DIR}/log-${DEP_NAME}.txt")
 
 include("${CMAKE_CURRENT_LIST_DIR}/fetch.cmake")
