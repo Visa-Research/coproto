@@ -81,7 +81,7 @@ macro(FIND_MACORO)
 
 endmacro()
 
-if((COPROTO_FETCH_AUTO OR COPROTO_FETCH_MACORO)AND COPROTO_BUILD)
+if((COPROTO_FETCH_AUTO OR COPROTO_FETCH_MACORO) AND COPROTO_BUILD)
     if(NOT COPROTO_FETCH_MACORO)
         FIND_MACORO(QUIET)
     endif()
@@ -108,7 +108,7 @@ macro(FIND_FUNCTION2)
 endmacro()
 
 if((COPROTO_FETCH_AUTO OR COPROTO_FETCH_FUNCTION2) AND COPROTO_BUILD)
-    if(NOT COPROTO_FETCH_FUNCTION2
+    if(NOT COPROTO_FETCH_FUNCTION2)
         FIND_FUNCTION2(QUIET)
     endif()
     include("${CMAKE_CURRENT_LIST_DIR}/../thirdparty/getFunction2.cmake")
@@ -118,10 +118,6 @@ set_target_properties(function2::function2 PROPERTIES INTERFACE_COMPILE_FEATURES
 
 ## Boost
 ###########################################################################
-if(COPROTO_ENABLE_BOOST AND COPROTO_FETCH_AUTO AND NOT DEFINED COPROTO_FETCH_BOOST AND COPROTO_BUILD)
-    set(COPROTO_FETCH_BOOST ON)
-endif()
-
 
 if(COPROTO_ENABLE_BOOST)
 
@@ -140,6 +136,7 @@ if(COPROTO_ENABLE_BOOST)
             option(Boost_LIB_PREFIX "Boost_LIB_PREFIX" "lib")
         endif()
         #set(Boost_DEBUG ON)  #<---------- Real life saver
+
         find_package(Boost 1.77.0 COMPONENTS system thread regex ${ARGS} ${COPROTO_FIND_PACKAGE_OPTIONS})
     endmacro()
 

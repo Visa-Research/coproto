@@ -1,7 +1,7 @@
 ﻿
 cmake_minimum_required (VERSION 3.15)
 
-project (coproto VERSION 0.3.0)
+project (coproto VERSION 0.3.1)
 
 
 # make cache variables for install destinations
