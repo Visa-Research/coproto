@@ -142,7 +142,7 @@ if(COPROTO_ENABLE_BOOST)
         if(MSVC)
             option(Boost_LIB_PREFIX "Boost_LIB_PREFIX" "lib")
         endif()
-        set(Boost_DEBUG ON)  #<---------- Real life saver
+        #set(Boost_DEBUG ON)  #<---------- Real life saver
 
         find_package(Boost 1.77.0 COMPONENTS system thread regex ${ARGS} ${COPROTO_FIND_PACKAGE_OPTIONS})
     endmacro()
