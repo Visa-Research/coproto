@@ -119,6 +119,7 @@ set_target_properties(function2::function2 PROPERTIES INTERFACE_COMPILE_FEATURES
 ## Boost
 ###########################################################################
 
+
 if(COPROTO_ENABLE_BOOST)
 
     macro(FIND_BOOST)
@@ -131,6 +132,12 @@ if(COPROTO_ENABLE_BOOST)
 
         option(Boost_USE_MULTITHREADED "mt boost" ON)
         option(Boost_USE_STATIC_LIBS "static boost" ON)
+
+        if(CMAKE_BUILD_TYPE STREQUAL "Debug")
+            option(Boost_USE_DEBUG_RUNTIME "boost debug runtime" ON)
+        else()
+            option(Boost_USE_DEBUG_RUNTIME "boost debug runtime" OFF)
+        endif()
 
         if(MSVC)
             option(Boost_LIB_PREFIX "Boost_LIB_PREFIX" "lib")
@@ -145,6 +152,7 @@ if(COPROTO_ENABLE_BOOST)
         if(NOT COPROTO_FETCH_BOOST)
             FIND_BOOST(QUIET)
         endif()
+        
         include("${CMAKE_CURRENT_LIST_DIR}/../thirdparty/getBoost.cmake")
     endif()
 
