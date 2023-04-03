@@ -254,17 +254,18 @@ namespace coproto
 			}
 
 			template<typename H>
-			bool await_suspend(const H&h)
+			coroutine_handle<> await_suspend(const H&h)
 			{
 				
 				if (internal::asSpan(mContainer).size() == 0)
 				{
 					mExPtr = std::make_exception_ptr(std::system_error(code::sendLengthZeroMsg));
-
+					return h;
 				}
 				else
-					mSock->send(mId, getBuffer(), macoro::noop_coroutine(), std::move(mToken)).resume();
-				return false;
+				{
+					return mSock->send(mId, getBuffer(), h, std::move(mToken), true);
+				}
 			}
 
 			void await_resume()

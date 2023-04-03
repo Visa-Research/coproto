@@ -318,6 +318,7 @@ namespace coproto
         t.add("SocketScheduler_badFirstMgs_test      ", tests::SocketScheduler_badFirstMgs_test);
         t.add("SocketScheduler_repeatInitSlot_test   ", tests::SocketScheduler_repeatInitSlot_test);
         t.add("SocketScheduler_badSlotSend_test      ", tests::SocketScheduler_badSlotSend_test);
+        t.add("SocketScheduler_executor_test         ", tests::SocketScheduler_executor_test);
         
         t.add("task_proto_test                       ", tests::task_proto_test);
         t.add("task_strSendRecv_Test                 ", tests::task_strSendRecv_Test);
@@ -359,6 +360,7 @@ namespace coproto
         t.add("task14_cancel_send_test               ", tests::task14_cancel_send_test);
         t.add("task14_cancel_recv_test               ", tests::task14_cancel_recv_test);
         t.add("task14_timeout_test                   ", tests::task14_timeout_test);
+
         
         return;
 

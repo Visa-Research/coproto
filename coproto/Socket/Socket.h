@@ -233,7 +233,10 @@ namespace coproto
 		}
 
 		// Returns a new socket that can be used semi-independently.
-		// Messages will not be 
+		// The intended use of this is for each end of the socket to 
+		// call fork. Messages on each fork will then remain separate.
+		// However, the underlying socket will be sending all messages.
+		// The messages are distinguished by sending a per fork tag.
 		Socket fork()
 		{
 			Socket ret = *this;
@@ -256,6 +259,23 @@ namespace coproto
 		void disableLogging()
 		{
 			mImpl->disableLogging();
+		}
+
+		// Set the completion executor for this socket/fork. When
+		// an operation completes, the initiating coroutine will be 
+		// resumed by the scheduler. Then scheduler should implement
+		// a member function called with signature
+		//
+		// void schedule(macoro::coroutine_handle<void>);
+		//
+		// schedule(...) will be called with the coroutine to be resumed.
+		// The return value should be a coroutine that should be 
+		// resumed within the current execution context. If unsure,
+		// return macoro::noop_coroutine().
+		template<typename Scheduler>
+		void setExecutor(Scheduler& scheduler)
+		{
+			mImpl->setExecutor(scheduler, mId);
 		}
 
 	};

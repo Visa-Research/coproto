@@ -34,7 +34,8 @@ namespace coproto
 		void SocketScheduler_repeatInitSlot_test();
 
 		void SocketScheduler_badSlotSend_test();
-		void SocketScheduler_badSlotRecv_test();
+
+		void SocketScheduler_executor_test();
 
 
 

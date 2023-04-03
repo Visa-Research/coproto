@@ -2,6 +2,8 @@
 #include "coproto/Socket/LocalAsyncSock.h"
 #include "coproto/Socket/BufferingSocket.h"
 #include <vector>
+#include "macoro/thread_pool.h"
+
 namespace coproto
 {
 	namespace tests
@@ -1085,6 +1087,71 @@ namespace coproto
 				if (e.code() != code::badCoprotoMessageHeader)
 					throw;
 			}
+
+		}
+
+		void SocketScheduler_executor_test()
+		{
+			auto socks = LocalAsyncSocket::makePair();
+
+			macoro::thread_pool pool;
+			auto w = pool.make_work();
+			pool.create_thread();
+
+			auto main = std::this_thread::get_id();
+			//_ std::cout << "tp " << pool.mState->mThreads[0].get_id() << std::endl;
+			//_ std::cout << "mn " << main << std::endl;
+			socks[0].setExecutor(pool);
+			socks[1].setExecutor(pool);
+
+			auto tt = [&](int s)
+			{
+				MC_BEGIN(task<>, &, s,
+					msg = std::vector<u8>{},
+					sock = socks[s].fork());
+
+				msg.resize(10);
+				if (s)
+				{
+					//_ std::cout << "s   " << std::this_thread::get_id() << std::endl;
+
+					MC_AWAIT(sock.send(std::move(msg)));
+					if (std::this_thread::get_id() == main)
+						throw COPROTO_RTE;
+
+					//_ std::cout << "sd0 " << std::this_thread::get_id() << std::endl;
+					msg.resize(10);
+					MC_AWAIT(sock.send(std::move(msg)));
+					if (std::this_thread::get_id() == main)
+						throw COPROTO_RTE;
+
+					//_ std::cout << "sd1 " << std::this_thread::get_id() << std::endl;
+
+				}
+				else
+				{
+					//_ std::cout << "r   " << std::this_thread::get_id() << std::endl;
+
+					MC_AWAIT(sock.recv(msg));
+
+					if (std::this_thread::get_id() == main)
+						throw COPROTO_RTE;
+					//_ std::cout << "rv0 " << std::this_thread::get_id() << std::endl;
+
+					MC_AWAIT(sock.recv(msg));
+
+					if (std::this_thread::get_id() == main)
+						throw COPROTO_RTE;
+
+					//_ std::cout << "rv1 " << std::this_thread::get_id() << std::endl;
+				}
+
+				MC_END();
+			};
+
+			auto r = sync_wait(when_all_ready(tt(0), tt(1)));
+			std::get<0>(r).result();
+			std::get<1>(r).result();
 
 		}
 

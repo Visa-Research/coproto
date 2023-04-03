@@ -795,6 +795,97 @@ namespace {
         ));
     }
 
+
+    task<> executorServer(Socket& s)
+    {
+        MC_BEGIN(task<>,
+            async0 = macoro::eager_task<void>{},
+            async1 = macoro::eager_task<void>{},
+            &s,
+            tp0 = macoro::thread_pool{},
+            tp1 = macoro::thread_pool{},
+            w0 = std::move(macoro::thread_pool::work{}),
+            w1 = std::move(macoro::thread_pool::work{}),
+            s0 = Socket{},
+            s1 = Socket{}
+        );
+        // In this example we show how one can set a default
+        // executor for a socket and/or fork. 
+
+        // for example, we can create two forks.
+        s0 = s.fork();
+        s1 = s.fork();
+
+        // each fork can be assigned its own executor.
+        // When an async operation completes, its will be resumed
+        // on the given executor. You can provide your own executor,
+        // it just needs to have a member function
+        //
+        // void schedule(macoro::coroutine_handle<void>);
+        //
+        // see the declaration of Socket::setExecutor for details.
+        s0.setExecutor(tp0);
+        s1.setExecutor(tp1);
+
+
+        // create the threads for the execution contexts. This is done by
+        // creating "fake" work objects and then creating the threads. Once 
+        // threads run out of work and the work objects are destroyed, the 
+        // threads will terminate.
+        w0 = tp0.make_work();
+        w1 = tp1.make_work();
+        tp0.create_thread();
+        tp1.create_thread();
+
+        // we can now eagerly start both protocols. This differs from the previous
+        // example in that we dont need to constantly post() to our chosen executor
+        // after each socket operation. Instead the socket will do this for us.
+        async0 = subprotoServer(s0) | macoro::make_eager();
+        async1 = subprotoClient(1, s1) | macoro::make_eager();
+
+        // Pause this protocol until both subprotocols are done.
+        MC_AWAIT(async0);
+        MC_AWAIT(async1);
+
+        // let the threads join.
+        w0 = {};
+        w1 = {};
+
+        MC_END();
+    }
+
+    task<> executorClient(Socket& s)
+    {
+        MC_BEGIN(task<>,
+            async0 = macoro::eager_task<void>{},
+            async1 = macoro::eager_task<void>{},
+            &s
+        );
+
+        // For the client we will run everything on the default execution context.
+        async0 = subprotoClient(1, s.fork()) | macoro::make_eager();
+        async1 = subprotoServer(s.fork()) | macoro::make_eager();
+
+        // Pause this protocol until both subprotocols are done.
+        MC_AWAIT(async0);
+        MC_AWAIT(async1);
+        MC_END();
+    }
+
+
+    void executorExample()
+    {
+
+        std::cout << Color::Green << " ----------- c++14 executorExample ----------- " << std::endl << Color::Default;
+        auto sockets = LocalAsyncSocket::makePair();
+
+
+        sync_wait(when_all_ready(
+            executorServer(sockets[0]),
+            executorClient(sockets[1])
+        ));
+    }
+
 }
 
 void cpp14Tutorial()
@@ -806,6 +897,7 @@ void cpp14Tutorial()
     wrapExample();
     subprotoExample();
     asyncExample();
+    executorExample();
 
 }
 

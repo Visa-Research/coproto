@@ -40,7 +40,7 @@
       "cacheVariables": {
         "CMAKE_BUILD_TYPE": "Debug",
         "COPROTO_FETCH_AUTO": "ON",
-        "COPROTO_ENABLE_BOOST": "ON",
+        "COPROTO_ENABLE_BOOST": false,
         "COPROTO_CPP_VER": "14",
         "VERBOSE_FETCH": true,
         "CMAKE_INSTALL_PREFIX": "${sourceDir}/out/install/${presetName}"

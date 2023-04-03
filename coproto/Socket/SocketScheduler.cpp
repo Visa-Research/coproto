@@ -8,8 +8,11 @@ namespace coproto {
 
 			bool acquired = false;
 			error_code ec;
+			ExecutorRef exec;
 			{
 				Lock l = Lock(mMutex);
+				auto slot = getLocalSlot(id, l);
+				exec = slot->mExecutor;
 
 				if (mEC)
 					ec = mEC;
@@ -17,7 +20,6 @@ namespace coproto {
 					ec = code::operation_aborted;
 				else
 				{
-					auto slot = getLocalSlot(id, l);
 
 					if (slot->mClosed)
 						ec = code::closed;
@@ -54,6 +56,11 @@ namespace coproto {
 			if (ec)
 			{
 				data->setError(std::make_exception_ptr(std::system_error(ec)));
+				if (exec)
+				{
+					exec(ch);
+					ch = macoro::noop_coroutine();
+				}
 				return ch;
 			}
 			else if (acquired)
@@ -70,8 +77,10 @@ namespace coproto {
 			SessionID id,
 			SendBuffer&& op,
 			coroutine_handle<void> callback,
-			macoro::stop_token&& token)
+			macoro::stop_token&& token,
+			bool async)
 		{
+			assert(callback);
 			if (op.asSpan().size() == 0)
 			{
 				op.setError(std::make_exception_ptr(std::system_error(code::sendLengthZeroMsg)));
@@ -81,15 +90,18 @@ namespace coproto {
 			bool acquired = false;
 			error_code ec;
 			SlotIter slot;
+			ExecutorRef exec;
 			{
 				Lock l = Lock(mMutex);
+				slot = getLocalSlot(id, l);
+				exec = slot->mExecutor;
+
 				if (mEC)
 					ec = mEC;
 				else if (token.stop_requested())
 					ec = code::operation_aborted;
 				else
 				{
-					slot = getLocalSlot(id, l);
 
 					if (slot->mClosed)
 						ec = code::closed;
@@ -99,7 +111,12 @@ namespace coproto {
 						if (acquired)
 							mSendStatus = Status::InUse;
 
-						slot->mSendOps2_.emplace_back(slot, callback, std::move(op), std::move(token));
+						auto cb = (async)?
+							macoro::noop_coroutine() :
+							std::exchange(callback, macoro::noop_coroutine());
+
+						slot->mSendOps2_.emplace_back(slot, cb, std::move(op), std::move(token));
+
 						auto& op = slot->mSendOps2_.back();
 						op.mSelfIter = --slot->mSendOps2_.end();
 						if (mSendBuffers_.size() == 0)
@@ -110,18 +127,47 @@ namespace coproto {
 			}
 
 			if (ec)
-			{
 				op.setError(std::make_exception_ptr(std::system_error(ec)));
-				return callback;
-			}
-			else if (acquired)
+
+			if (acquired)
 			{
+				// we need to resume mSendTaskHandle. We have two cases
+				// 1) callback engaged: we want to resume both callback and mSendTaskHandle
+				// 2) callback disengaged: we want to resume mSendTaskHandle
+				// 
+				// For 1, if we have an executor then we will resume callback using that.
 				COPROTO_ASSERT(mSendTaskHandle);
-				return std::exchange(mSendTaskHandle, nullptr);
+				if (callback != macoro::noop_coroutine())
+				{
+					assert(async);
+					if (exec)
+					{
+						exec(callback);
+						return std::exchange(mSendTaskHandle, nullptr);
+					}
+					else
+					{
+						std::exchange(mSendTaskHandle, nullptr).resume();
+						return callback;
+					}
+				}
+				else 
+				{
+					return std::exchange(mSendTaskHandle, nullptr);
+				}
 			}
 			else
-				return macoro::noop_coroutine();
+			{
+				// if we have an executor, then resume on that. Otherwise
+				// just return callback.
+				if (callback != macoro::noop_coroutine() && exec)
+				{
+					exec(callback);
+					callback = macoro::noop_coroutine();
+				}
 
+				return callback;
+			}
 		}
 
 		SessionID SockScheduler::fork(SessionID s)
@@ -129,7 +175,7 @@ namespace coproto {
 			Lock l(mMutex);
 			auto slot = getLocalSlot(s, l);
 			auto s2 = slot->mSessionID.derive();
-			initLocalSlot(s2, l);
+			initLocalSlot(s2, slot->mExecutor, l);
 			return s2;
 		}
 
@@ -178,7 +224,7 @@ namespace coproto {
 
 
 
-		void SockScheduler::initLocalSlot(const SessionID& id, Lock& _)
+		void SockScheduler::initLocalSlot(const SessionID& id, const ExecutorRef& ex, Lock& _)
 		{
 			auto iter = mIdSlotMapping_.find(id);
 			if (iter == mIdSlotMapping_.end())
@@ -188,15 +234,16 @@ namespace coproto {
 				auto slot = --mSlots_.end();
 				slot->mSessionID = id;
 				iter = mIdSlotMapping_.insert({ id, slot }).first;
-				iter->second->mLocalId = mNextLocalSlot++;
 			}
 			else
 			{
 				// We have already received a message for this slot.
 				// assign its local id.
 				COPROTO_ASSERT(~iter->second->mLocalId == 0);
-				iter->second->mLocalId = mNextLocalSlot++;
 			}
+
+			iter->second->mLocalId = mNextLocalSlot++;
+			iter->second->mExecutor = ex;
 		}
 
 		SockScheduler::SlotIter SockScheduler::getLocalSlot(const SessionID& id, Lock& _)
@@ -470,7 +517,7 @@ namespace coproto {
 					if (!cbs)
 					{
 						assert(cbs.mSize == 0);
-						cbs.push_back(macoro::noop_coroutine());
+						cbs.push_back({}, macoro::noop_coroutine());
 					}
 				}
 				else
@@ -485,7 +532,7 @@ namespace coproto {
 #ifdef COPROTO_SOCK_LOGGING
 						s->mRecvLog.push_back("anyRecvOp::resume");
 #endif
-						cbs.push_back(h);
+						cbs.push_back({}, h);
 					}
 					else
 					{
@@ -499,7 +546,7 @@ namespace coproto {
 						if (!cbs)
 						{
 							assert(cbs.mSize == 0);
-							cbs.push_back(macoro::noop_coroutine());
+							cbs.push_back({}, macoro::noop_coroutine());
 						}
 					}
 				}
@@ -637,7 +684,7 @@ namespace coproto {
 						auto& slot2 = *s->mSendBuffers_.front();
 						auto& op2 = slot2.mSendOps2_.front();
 						op2.mInProgress = true;
-						cbs.push_back(h);
+						cbs.push_back({}, h);
 					}
 				}
 				else
@@ -649,7 +696,7 @@ namespace coproto {
 					COPROTO_ASSERT(!s->mSendTaskHandle);
 					s->mSendTaskHandle = h;
 					if(!cbs)
-						cbs.push_back(macoro::noop_coroutine());
+						cbs.push_back({}, macoro::noop_coroutine());
 				}
 			}
 
