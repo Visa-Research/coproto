@@ -529,7 +529,7 @@ namespace {
     // A protocol can call a subprotocol by calling 
     // MC_AWAIT on the protocol object, just like how
     // a socket operation is performed.
-    task<> subprotoServer(Socket& sock)
+    task<> subprotoServer(Socket sock)
     {
         MC_BEGIN(task<>,msg = std::vector<char>(10), str = std::string{}, &sock);
         MC_AWAIT(sock.recv(msg));
@@ -544,7 +544,7 @@ namespace {
         MC_END();
     }
 
-    task<> subprotoClient(u64 t, Socket& sock)
+    task<> subprotoClient(u64 t, Socket sock)
     {
         std::vector<char> msg(10);
         for (u64 i = 0; i < msg.size(); ++i)
