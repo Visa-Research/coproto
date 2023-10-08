@@ -138,6 +138,8 @@ if(COPROTO_ENABLE_BOOST)
                 option(Boost_USE_DEBUG_RUNTIME "boost debug runtime" OFF)
             endif()
             option(Boost_LIB_PREFIX "Boost_LIB_PREFIX" "lib")
+        else()
+            option(Boost_USE_DEBUG_RUNTIME "boost debug runtime" OFF)
         endif()
         #set(Boost_DEBUG ON)  #<---------- Real life saver
 
