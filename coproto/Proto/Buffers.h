@@ -86,20 +86,9 @@ namespace coproto
 #ifdef COPROTO_CPP20
 
 			std::coroutine_handle<> await_suspend(std::coroutine_handle<> h);
-
-			//template<typename PROMISE>
-			//std::coroutine_handle<> await_suspend(std::coroutine_handle<PROMISE> h)
-			//{
-			//	return await_suspend(static_cast<std::coroutine_handle<>>(h));
-			//}
 #endif
 			coroutine_handle<> await_suspend(coroutine_handle<> h);
 
-			//template<typename PROMISE>
-			//coroutine_handle<> await_suspend(coroutine_handle<PROMISE> h)
-			//{
-			//	return await_suspend(static_cast<coroutine_handle<>>(h));
-			//}
 		};
 
 		class RecvProtoBase :  public RecvBuffer
@@ -122,20 +111,9 @@ namespace coproto
 			bool await_ready() { return false; }
 #ifdef COPROTO_CPP20
 			std::coroutine_handle<> await_suspend(std::coroutine_handle<> h);
-
-			//template<typename PROMISE>
-			//std::coroutine_handle<> await_suspend(std::coroutine_handle<PROMISE> h)
-			//{
-			//	return await_suspend(static_cast<std::coroutine_handle<>>(h));
-			//}
 #endif
 			coroutine_handle<> await_suspend(coroutine_handle<> h);
 
-			//template<typename PROMISE>
-			//coroutine_handle<> await_suspend(coroutine_handle<PROMISE> h)
-			//{
-			//	return await_suspend(static_cast<coroutine_handle<>>(h));
-			//}
 		};
 
 		template<typename Container, bool allowResize>
@@ -292,12 +270,14 @@ namespace coproto
 				}
 			}
 
-
+#ifdef COPROTO_CPP20
 			template<typename P>
 			std::coroutine_handle<> await_suspend(const std::coroutine_handle<P>& h)
 			{
 				return await_suspend(static_cast<coroutine_handle<>>(h)).std_cast();
 			}
+#endif
+
 
 			void await_resume()
 			{
