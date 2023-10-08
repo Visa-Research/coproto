@@ -531,7 +531,7 @@ namespace {
     // a socket operation is performed.
     task<> subprotoServer(Socket sock)
     {
-        MC_BEGIN(task<>,msg = std::vector<char>(10), str = std::string{}, &sock);
+        MC_BEGIN(task<>,msg = std::vector<char>(10), str = std::string{}, sock);
         MC_AWAIT(sock.recv(msg));
         MC_AWAIT(sock.send(msg));
 
@@ -550,7 +550,7 @@ namespace {
         for (u64 i = 0; i < msg.size(); ++i)
             msg[i] = 'a' + i;
 
-        MC_BEGIN(task<>,msg, t, &sock);
+        MC_BEGIN(task<>,msg, t, sock);
 
         MC_AWAIT(sock.send(msg));
         MC_AWAIT(sock.recv(msg));
@@ -846,6 +846,9 @@ namespace {
         // Pause this protocol until both subprotocols are done.
         MC_AWAIT(async0);
         MC_AWAIT(async1);
+
+        MC_AWAIT(s0.flush());
+        MC_AWAIT(s1.flush());
 
         // let the threads join.
         w0 = {};

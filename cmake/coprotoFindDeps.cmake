@@ -130,13 +130,13 @@ if(COPROTO_ENABLE_BOOST)
         option(Boost_USE_MULTITHREADED "mt boost" ON)
         option(Boost_USE_STATIC_LIBS "static boost" ON)
 
-        if(CMAKE_BUILD_TYPE STREQUAL "Debug")
-            option(Boost_USE_DEBUG_RUNTIME "boost debug runtime" ON)
-        else()
-            option(Boost_USE_DEBUG_RUNTIME "boost debug runtime" OFF)
-        endif()
 
         if(MSVC)
+            if(CMAKE_BUILD_TYPE STREQUAL "Debug")
+                option(Boost_USE_DEBUG_RUNTIME "boost debug runtime" ON)
+            else()
+                option(Boost_USE_DEBUG_RUNTIME "boost debug runtime" OFF)
+            endif()
             option(Boost_LIB_PREFIX "Boost_LIB_PREFIX" "lib")
         endif()
         #set(Boost_DEBUG ON)  #<---------- Real life saver
@@ -147,10 +147,13 @@ if(COPROTO_ENABLE_BOOST)
     
     if((COPROTO_FETCH_AUTO OR COPROTO_FETCH_BOOST) AND COPROTO_BUILD)
         if(NOT COPROTO_FETCH_BOOST)
+        message("looking, COPROTO_FETCH_BOOST=${COPROTO_FETCH_BOOST}")
             FIND_BOOST(QUIET)
         endif()
         
-        include("${CMAKE_CURRENT_LIST_DIR}/../thirdparty/getBoost.cmake")
+        if(NOT Boost_FOUND)
+            include("${CMAKE_CURRENT_LIST_DIR}/../thirdparty/getBoost.cmake")
+        endif()
     endif()
 
 

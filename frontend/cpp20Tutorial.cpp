@@ -188,6 +188,7 @@ namespace {
         message.resize(10);
         co_await sock.recv(message);
         co_await sock.recv(message);
+
     }
 
     task<> moveSendClient(Socket& sock)
@@ -199,6 +200,7 @@ namespace {
         co_await sock.send(copy(message));
 
         message.resize(10);
+        co_await sock.recv(message);
         co_await sock.recv(message);
     }
 

@@ -20,3 +20,5 @@
 
 // compile the library logging support
 #cmakedefine COPROTO_LOGGING @COPROTO_LOGGING@ 
+
+#cmakedefine COPROTO_SOCK_LOGGING "@COPROTO_SOCK_LOGGING@" 

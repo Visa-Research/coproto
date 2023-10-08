@@ -8,16 +8,9 @@ set(LOG_FILE  "${CMAKE_CURRENT_LIST_DIR}/log-macoro.txt")
 
 include("${CMAKE_CURRENT_LIST_DIR}/fetch.cmake")
 
-if (NOT MACORO_FOUND 
-    OR MACORO_DEV
-    OR (
-        DEFINED MACORO_FOUND AND 
-        (
-            (MACORO_CPP_20 AND NOT COPROTO_CPP20) OR
-            (NOT MACORO_CPP_20 AND COPROTO_CPP20)
-            )
-        )
-    )
+#message(STATUS "macoro_FOUND=${macoro_FOUND}, MACORO_DEV=${MACORO_DEV}")
+if (NOT macoro_FOUND 
+    OR MACORO_DEV)
     if(NOT DEFINED COPROTO_STAGE)
         message(FATAL_ERROR "COPROTO_STAGE not defined")
     endif()
