@@ -115,6 +115,8 @@ namespace coproto
                     mVecBacking = std::move(o.mVecBacking);
                     mVec = mVecBacking;
                 }
+
+                o.mVec = o.mArrayBacking;
                 return *this;
             }
 
