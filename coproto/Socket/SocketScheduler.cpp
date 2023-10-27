@@ -284,12 +284,18 @@ namespace coproto {
 		}
 
 
+
 		void SockScheduler::closeFork(SessionID sid)
 		{
 			assert(0 && "not impl");
-			CBList cbs;
+			std::terminate();
+
+			DefaultExecutor::Runner runner;
+			CBQueue<ExCoHandle> xcbs;
 			SlotIter slot;
 			bool clearSend = false, clearRecv = false;
+			bool flushCBQueue = false;
+
 			{
 				Lock l(mMutex);
 
@@ -303,7 +309,7 @@ namespace coproto {
 						for (auto& op : slot->mSendOps2_)
 						{
 							op.mSendBuff.setError(std::make_exception_ptr(std::system_error(code::operation_aborted)));
-							op.getCB(cbs, l);
+							op.getCB(mDefaultEx.mCBs, xcbs, l);
 						}
 						clearSend = true;
 					}
@@ -322,7 +328,7 @@ namespace coproto {
 						for (auto& op : slot->mRecvOps2_)
 						{
 							op.mRecvBuffer->setError(std::make_exception_ptr(std::system_error(mEC)));
-							op.getCB(cbs, l);
+							op.getCB(mDefaultEx.mCBs, xcbs, l);
 
 							--mNumRecvs;
 						}
@@ -341,8 +347,11 @@ namespace coproto {
 				if (clearRecv)
 					slot->mRecvOps2_.clear();
 
-				cbs.get().resume();
+				runner = mDefaultEx.acquire(l);
 			}
+
+			xcbs.run();
+			runner.run().resume();
 		}
 
 		coroutine_handle<> SockScheduler::flush(coroutine_handle<> h)
@@ -369,7 +378,7 @@ namespace coproto {
 		}
 
 		void SockScheduler::close(
-			CBList& cbs,
+			CBQueue<ExCoHandle>& xcbs,
 			Caller c,
 			bool& closeSocket,
 			error_code ec,
@@ -395,7 +404,7 @@ namespace coproto {
 					auto& op = slot.mSendOps2_.front();
 
 					op.mSendBuff.setError(std::make_exception_ptr(std::system_error(mEC)));
-					op.getCB(cbs, l);
+					op.getCB(mDefaultEx.mCBs, xcbs, l);
 
 					slot.mSendOps2_.pop_front();
 					mSendBuffers_.pop_front();
@@ -420,7 +429,7 @@ namespace coproto {
 					for (auto& op : slot.mRecvOps2_)
 					{
 						op.mRecvBuffer->setError(std::make_exception_ptr(std::system_error(mEC)));
-						op.getCB(cbs, l);
+						op.getCB(mDefaultEx.mCBs, xcbs, l);
 
 					}
 					slot.mRecvOps2_.clear();
@@ -438,17 +447,20 @@ namespace coproto {
 
 		void SockScheduler::close()
 		{
-			CBList cbs;
+			CBQueue<ExCoHandle> xcbs;
+			DefaultExecutor::Runner runner;
 			bool closeSocket = false;
 			{
 				Lock l(mMutex);
-				close(cbs, Caller::Extern, closeSocket, code::closed, l);
+				close(xcbs, Caller::Extern, closeSocket, code::closed, l);
+				runner = mDefaultEx.acquire(l);
 			}
 
 			if (closeSocket)
 				mCloseSock();
 
-			cbs.get().resume();
+			xcbs.run();
+			runner.run().resume();
 		}
 
 		SockScheduler::anyRecvOp::anyRecvOp(SockScheduler* ss, error_code e)
@@ -474,7 +486,10 @@ namespace coproto {
 			}
 
 			Slot* slot = nullptr;
-			CBList cbs;
+
+			CBQueue<ExCoHandle> xcbs;
+			DefaultExecutor::Runner runner;
+
 			if (s->mRequestedRecvSlot)
 			{
 				slot = &*std::exchange(s->mRequestedRecvSlot, nullopt).value();
@@ -500,7 +515,7 @@ namespace coproto {
 #ifdef COPROTO_SOCK_LOGGING
 					s->mRecvLog.push_back("anyRecvOp::pop-recv");
 #endif
-					slot->mRecvOps2_.front().getCB(cbs, lock);
+					slot->mRecvOps2_.front().getCB(s->mDefaultEx.mCBs, xcbs, lock);
 					slot->mRecvOps2_.pop_front();
 
 					COPROTO_ASSERT(s->mNumRecvs);
@@ -512,13 +527,13 @@ namespace coproto {
 #ifdef COPROTO_SOCK_LOGGING
 					s->mRecvLog.push_back("anyRecvOp::closing");
 #endif
-					s->close(cbs, Caller::Recver, closeSocket, ec, lock);
+					s->close(xcbs, Caller::Recver, closeSocket, ec, lock);
 
-					if (!cbs)
-					{
-						assert(cbs.mSize == 0);
-						cbs.push_back({}, macoro::noop_coroutine());
-					}
+					//if (!cbs)
+					//{
+					//	assert(cbs.mSize == 0);
+					//	cbs.push_back({}, macoro::noop_coroutine());
+					//}
 				}
 				else
 				{
@@ -532,7 +547,7 @@ namespace coproto {
 #ifdef COPROTO_SOCK_LOGGING
 						s->mRecvLog.push_back("anyRecvOp::resume");
 #endif
-						cbs.push_back({}, h);
+						s->mDefaultEx.mCBs.push_back(h);
 					}
 					else
 					{
@@ -543,23 +558,22 @@ namespace coproto {
 						COPROTO_ASSERT(!s->mRecvTaskHandle);
 						s->mRecvTaskHandle = h;
 
-						if (!cbs)
-						{
-							assert(cbs.mSize == 0);
-							cbs.push_back({}, macoro::noop_coroutine());
-						}
+						//if (!cbs)
+						//{
+						//	assert(cbs.mSize == 0);
+						//	cbs.push_back({}, macoro::noop_coroutine());
+						//}
 					}
 				}
+
+				runner = s->mDefaultEx.acquire(lock);
 			}
 
 			if (closeSocket)
 				s->mCloseSock();
 
-			COPROTO_ASSERT(cbs);
-			return cbs.get();
-			//for (u64 i = 0; i < cbs.size() - 1; ++i)
-			//	cbs[i].resume();
-			//return cbs.back();
+			xcbs.run();
+			return runner.run();
 		}
 
 
@@ -630,7 +644,9 @@ namespace coproto {
 			bool closeSocket = false;
 			auto slot = s->mSendBuffers_.front();
 			auto& op = slot->mSendOps2_.front();
-			CBList cbs;
+
+			CBQueue<ExCoHandle> xcbs;
+			DefaultExecutor::Runner runner;
 
 			// could lock s->mMutex
 			op.mReg.reset();
@@ -649,7 +665,7 @@ namespace coproto {
 
 			{
 				auto lock = Lock(s->mMutex);
-				slot->mSendOps2_.front().getCB(cbs, lock);
+				slot->mSendOps2_.front().getCB(s->mDefaultEx.mCBs, xcbs, lock);
 				slot->mSendOps2_.pop_front();
 				s->mSendBuffers_.pop_front();
 
@@ -661,7 +677,7 @@ namespace coproto {
 #ifdef COPROTO_SOCK_LOGGING
 					s->mSendLog.push_back("error-close");
 #endif
-					s->close(cbs, Caller::Sender, closeSocket, ec, lock);
+					s->close(xcbs, Caller::Sender, closeSocket, ec, lock);
 				}
 				else if (s->mSendBuffers_.size())
 				{
@@ -684,7 +700,7 @@ namespace coproto {
 						auto& slot2 = *s->mSendBuffers_.front();
 						auto& op2 = slot2.mSendOps2_.front();
 						op2.mInProgress = true;
-						cbs.push_back({}, h);
+						s->mDefaultEx.mCBs.push_back(h);
 					}
 				}
 				else
@@ -695,16 +711,17 @@ namespace coproto {
 					s->mSendStatus = Status::Idle;
 					COPROTO_ASSERT(!s->mSendTaskHandle);
 					s->mSendTaskHandle = h;
-					if(!cbs)
-						cbs.push_back({}, macoro::noop_coroutine());
 				}
+
+
+				runner = s->mDefaultEx.acquire(lock);
 			}
 
 			if (closeSocket)
 				s->mCloseSock();
 
-			COPROTO_ASSERT(cbs);
-			return cbs.get();
+			xcbs.run();
+			return runner.run();
 		}
 
 #ifdef COPROTO_CPP20

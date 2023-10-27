@@ -59,102 +59,205 @@ namespace coproto
                 : mScheduler(&s)
                 , mFn([](void* s, coroutine_handle<>h) {
                 auto& scheduler = *(Scheduler*)s;
-                    scheduler.schedule(h);
+                scheduler.schedule(h);
                     })
             {}
 
-            operator bool() const
+                    operator bool() const
+                    {
+                        return mScheduler;
+                    }
+
+                    void operator()(coroutine_handle<>h)
+                    {
+                        mFn(mScheduler, h);
+                    }
+        };
+
+        struct ExCoHandle
+        {
+
+            ExecutorRef mEx;
+            coroutine_handle<> mH;
+
+            void resume()
             {
-                return mScheduler;
+                mEx.mFn(mEx.mScheduler, mH);
             }
 
-            void operator()(coroutine_handle<>h)
+        };
+
+        // a list of callbacks with a small buffer optimization.
+        template<typename T>
+        struct CBQueue
+        {
+            CBQueue()
             {
-                mFn(mScheduler, h);
+                mVec = mArrayBacking;
+            }
+            CBQueue(CBQueue&& o)
+            {
+                *this = std::move(o);
+            }
+
+            CBQueue& operator=(CBQueue&& o)
+            {
+                mHead = (std::exchange(o.mHead, 0));
+                mTail = (std::exchange(o.mTail, 0));
+                if (o.mVec.data() == o.mArrayBacking.data())
+                {
+                    mArrayBacking = std::move(o.mArrayBacking);
+                    mVec = mArrayBacking;
+                }
+                else
+                {
+                    COPROTO_ASSERT(o.mVec.data() == o.mVecBacking.data());
+                    mVecBacking = std::move(o.mVecBacking);
+                    mVec = mVecBacking;
+                }
+                return *this;
+            }
+
+            u64 mHead = 0;
+            u64 mTail = 0;
+
+            const u64 mLogTwoSize = 6;
+
+            std::array<T, 8> mArrayBacking;
+            std::vector<T> mVecBacking;
+            span<T> mVec;
+
+            void push_back(T h)
+            {
+                auto mask = mVec.size() - 1;
+
+                if (mHead == mTail + mVec.size())
+                {
+                    std::vector<T> v(std::max<u64>(mVec.size() * 2, 1ull << mLogTwoSize));
+                    if (mVec.size())
+                    {
+                        auto begin = mTail & mask;
+                        auto end = mHead & mask;
+                        for (u64 i = begin, j = 0; i != end; i = (i + 1) & mask, ++j)
+                        {
+                            v[j] = std::move(mVec[i]);
+                        }
+
+                        mVecBacking = std::move(v);
+                        mVec = mVecBacking;
+                        mHead = mHead - mTail;
+                        mTail = 0;
+                    }
+                }
+                //assert(mVec[mHead & mask] == nullptr);
+                mVec[mHead++ & mask] = std::move(h);
+            }
+
+            u64 size() const { return mHead - mTail; }
+
+            T pop_front()
+            {
+                if (size() == 0)
+                    throw COPROTO_RTE;
+                auto mask = mVec.size() - 1;
+                return std::move(mVec[mTail++ & mask]);
+
+            }
+
+            operator bool() const
+            {
+                return size() > 0;
+            }
+
+            void run()
+            {
+                while (size())
+                    pop_front().resume();
             }
         };
 
-
-        // a list of callbacks with a small buffer optimization.
-        struct CBList
+        struct DefaultExecutor
         {
-            struct CB
-            {
-                ExecutorRef mEx;
-                coroutine_handle<> mH;
+            DefaultExecutor() = default;
+            DefaultExecutor(const DefaultExecutor&) = delete;
+            DefaultExecutor(DefaultExecutor&&) = delete;
 
-                coroutine_handle<> get() {
-                    if (mEx.mScheduler)
+            bool mHasRunner = false;
+            CBQueue<coroutine_handle<>> mCBs;
+            std::mutex* mMtx = nullptr;
+
+            // this will try to acquired the callback queues.
+            // if it does, it will hold onto them and run all
+            // of the queued call backs. If more callbacks
+            // are added while we are calling them, these
+            // will also be run.
+            struct Runner
+            {
+                DefaultExecutor* mEx = nullptr;
+                CBQueue<coroutine_handle<>> mCBs;
+                bool mAquired = false;
+
+
+                Runner() = default;
+                Runner(Runner&&) = default;
+                Runner& operator=(Runner&&) = default;
+
+                // check if no one else calling the callbacks and if so
+                // take the callbacks.
+                Runner(DefaultExecutor* e, std::unique_lock<std::mutex>& l)
+                {
+                    mEx = e;
+                    //assert(l.mutex() == mEx->mMtx);
+                    if (mEx->mHasRunner == false && mEx->mCBs.size() > 0)
                     {
-                        mEx.mFn(mEx.mScheduler, mH);
-                        return macoro::noop_coroutine();
+                        mEx->mHasRunner = true;
+                        mAquired = true;
+                        mCBs = std::move(mEx->mCBs);
                     }
-                    else
-                        return mH;
+                }
+
+                // run all of the callbacks that were acquired. 
+                // once those are run, check if more have been added
+                // and if so run those. repeat.
+                MACORO_NODISCARD
+                coroutine_handle<> run()
+                {
+                    assert(mEx->mMtx);
+                    coroutine_handle<> next = nullptr;
+                    while (mAquired)
+                    {
+                        while (mCBs.size())
+                        {
+                            auto h = mCBs.pop_front();
+
+                            if (next)
+                                next.resume();
+
+                            next = h;
+
+                            if (mCBs.size() == 0)
+                            {
+                                std::unique_lock<std::mutex> l(*mEx->mMtx);
+                                std::swap(mEx->mCBs, mCBs);
+                                mEx->mHasRunner = false;
+                                mAquired = false;
+                            }
+                        }
+                    }
+
+                    if (next == nullptr)
+                        next = macoro::noop_coroutine();
+
+                    return next;
                 }
             };
 
-            using SmallBuffer = ::std::array<CB, 8>;
-
-            CBList() = default;
-            CBList(CBList&& o)
-                : mSize(std::exchange(o.mSize, 0))
-                , mArray(std::exchange(o.mArray, SmallBuffer{}))
-                , mVec(std::move(o.mVec))
+            Runner acquire(std::unique_lock<std::mutex>& l)
             {
+                return Runner(this, l);
             }
 
-            u64 mSize = 0;
-            SmallBuffer mArray;
-            std::vector<CB> mVec;
-
-            void push_back(ExecutorRef ex, coroutine_handle<> h)
-            {
-                if (mSize >= mArray.size())
-                    mVec.push_back({ ex, h });
-                else
-                {
-                    assert(mArray[mSize].mH == nullptr);
-                    mArray[mSize++] = { ex, h };
-                }
-            }
-
-            // resume all but the first coroutine. Return that one for symmetric transfer.
-            MACORO_NODISCARD
-                coroutine_handle<> get()
-            {
-                if (mSize == 0)
-                    return macoro::noop_coroutine();
-
-                coroutine_handle<> ret = macoro::noop_coroutine();
-
-                for (u64 i = 0; i < std::min<u64>(mSize, mArray.size()); ++i)
-                {
-                    auto cb =  mArray[i].get();
-                    if (ret == macoro::noop_coroutine())
-                        ret = cb;
-                    else
-                        cb.resume();
-                }
-
-                for (u64 i = 0; i < mVec.size(); ++i)
-                {
-                    auto cb = mVec[i].get();
-                    if (ret == macoro::noop_coroutine())
-                        ret = cb;
-                    else
-                        cb.resume();
-                }
-
-                return ret;
-            }
-
-            operator bool() const
-            {
-                return mSize;
-            }
         };
-
 
         // This class handles the logic with managing what message to
         // send and what fork/slot it corresponds to. Recall that we support running
@@ -246,7 +349,9 @@ namespace coproto
                 {
                     mReg.emplace(mToken, [this] {
 
-                        CBList cb;
+                        CBQueue<coroutine_handle<>> cb;
+                        CBQueue<ExCoHandle> xcb;
+
                         macoro::stop_source cancelSrc;
                         {
                             auto& s = *mSlot->mSched;
@@ -255,7 +360,7 @@ namespace coproto
                             {
                                 mRecvBuffer->setError(std::make_exception_ptr(std::system_error(code::operation_aborted)));
                                 COPROTO_ASSERT(mCH);
-                                getCB(cb, l);
+                                getCB(cb, xcb, l);
                                 mSlot->mRecvOps2_.erase(mSelfIter);
 
                                 COPROTO_ASSERT(s.mNumRecvs);
@@ -271,10 +376,13 @@ namespace coproto
                             }
                         }
 
-                        if (cb)
-                            cb.get().resume();
-                        else if (cancelSrc.stop_possible())
+                        while (xcb)
+                            xcb.pop_front().resume();
+                        while (cb)
+                            cb.pop_front().resume();
+                        if (cancelSrc.stop_possible())
                             cancelSrc.request_stop();
+
                         });
                 }
 
@@ -295,14 +403,22 @@ namespace coproto
                     return mToken;
                 }
 
-                void getCB(CBList& cbs, std::unique_lock<std::mutex>&)
+                void getCB(CBQueue<coroutine_handle<>>& cbs, CBQueue<ExCoHandle>& xcbs, std::unique_lock<std::mutex>&)
                 {
-                    cbs.push_back(mSlot->mExecutor, std::exchange(mCH, nullptr));
+                    if (mSlot->mExecutor)
+                        xcbs.push_back(ExCoHandle{ mSlot->mExecutor, std::exchange(mCH, nullptr) });
+                    else
+                        cbs.push_back(std::exchange(mCH, nullptr));
 
                     for (auto& f : mFlushes)
                     {
                         if (f.use_count() == 1)
-                            cbs.push_back(mSlot->mExecutor, std::exchange(f->mHandle, nullptr));
+                        {
+                            if (mSlot->mExecutor)
+                                xcbs.push_back(ExCoHandle{ mSlot->mExecutor, std::exchange(f->mHandle, nullptr) });
+                            else
+                                cbs.push_back(std::exchange(f->mHandle, nullptr));
+                        }
                     }
                 }
             };
@@ -323,7 +439,8 @@ namespace coproto
                     {
                         mReg.emplace(mToken, [this] {
 
-                            CBList cb;
+                            CBQueue<coroutine_handle<>> cb;
+                            CBQueue<ExCoHandle> xcb;
                             macoro::stop_source cancelSrc;
                             {
                                 auto& s = *mSlot->mSched;
@@ -332,7 +449,7 @@ namespace coproto
                                 {
                                     mSendBuff.setError(std::make_exception_ptr(std::system_error(code::operation_aborted)));
                                     COPROTO_ASSERT(mCH);
-                                    getCB(cb, l);
+                                    getCB(cb, xcb, l);
 
                                     auto& queue = s.mSendBuffers_;
                                     auto iter = std::find(queue.begin(), queue.end(), mSlot);
@@ -352,9 +469,11 @@ namespace coproto
                                 }
                             }
 
-                            if (cb)
-                                cb.get().resume();
-                            else if (cancelSrc.stop_possible())
+                            while (xcb)
+                                xcb.pop_front().resume();
+                            while (cb)
+                                cb.pop_front().resume();
+                            if (cancelSrc.stop_possible())
                                 cancelSrc.request_stop();
                             });
                     }
@@ -377,14 +496,24 @@ namespace coproto
                     return mToken;
                 }
 
-                void getCB(CBList& cbs, std::unique_lock<std::mutex>&)
+                void getCB(CBQueue<coroutine_handle<>>& cbs, CBQueue<ExCoHandle>& xcbs, std::unique_lock<std::mutex>&)
                 {
-                    cbs.push_back(mSlot->mExecutor, std::exchange(mCH, nullptr));
+                    if (mSlot->mExecutor)
+                        xcbs.push_back(ExCoHandle{ mSlot->mExecutor, std::exchange(mCH, nullptr) });
+                    else
+                        cbs.push_back(std::exchange(mCH, nullptr));
 
                     for (auto& f : mFlushes)
                     {
                         if (f.use_count() == 1)
-                            cbs.push_back(mSlot->mExecutor, std::exchange(f->mHandle, nullptr));
+                        {
+
+                            if (mSlot->mExecutor)
+                                xcbs.push_back(ExCoHandle{ mSlot->mExecutor, std::exchange(f->mHandle, nullptr) });
+                            else
+                                cbs.push_back(std::exchange(f->mHandle, nullptr));
+
+                        }
                     }
                 }
             };
@@ -427,6 +556,7 @@ namespace coproto
                 bool mInitiated = false;
                 bool mClosed = false;
                 ExecutorRef mExecutor;
+                std::string mName;
 
                 std::list<RecvOperation> mRecvOps2_;
                 std::list<SendOperation> mSendOps2_;
@@ -521,6 +651,10 @@ namespace coproto
             macoro::eager_task<void> mSendTask;
             macoro::eager_task<void> mRecvTask;
 
+
+            DefaultExecutor mDefaultEx;
+
+
             void resetRecvToken()
             {
                 assert(mInitializing || mRecvCancelSrc.stop_possible() == false);
@@ -608,7 +742,7 @@ namespace coproto
 
 
             enum class Caller { Sender, Recver, Extern };
-            void close(CBList& cbs, Caller c, bool& closeSock, error_code, Lock&);
+            void close(CBQueue<ExCoHandle>& xcbs, Caller c, bool& closeSock, error_code, Lock&);
             void close();
             void closeFork(SessionID sid);
 
@@ -641,11 +775,8 @@ namespace coproto
         {
             mSockPtr = sock;
             mRecvTask = receiveDataTask(sock);
-            //mRecvTask.handle.resume();
-            //auto a = mRecvTask.MACORO_OPERATOR_COAWAIT();
-            //a.m_coroutine
+            mDefaultEx.mMtx = &mMutex;
             mSendTask = makeSendTask(sock);
-            //mSendTask.handle.resume();
 
             mCloseSock = [this, sock] {sock->close(); };
 
