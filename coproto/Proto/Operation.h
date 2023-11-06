@@ -125,26 +125,31 @@ namespace coproto
 		}
 
 		template<typename ValueType>
-		enable_if_t<std::is_trivial<ValueType>::value, span<u8>>
+		enable_if_t<is_trivial_container<Container>::value == false, span<u8>>
 			asSpan(ValueType& container)
 		{
+			static_assert(
+				std::is_trivial<Container>::value ||
+				is_trivial_container<Container>::value,
+				"Coproto does not know how to send & receiver our type. Coproto can send "
+				"type T that satisfies \n\n\tstd::is_trivial<T>::value == true\n\tcoproto::is_trivial_container<T>::value == true\n\n"
+				"types like int, char, u8 are trivial. Types like std::vector<int> are trivial container. The container must look "
+				"like a vector. For a complete specification of coproto::is_trivial_container, see coproto/Common/TypeTraits.h");
+
 			return span<u8>((u8*)&container, u8Size(container));
 		}
 
-		template<typename OTHER>
-		enable_if_t<std::is_trivial<OTHER>::value == false && 
-			is_trivial_container<OTHER>::value == false, span<u8>>
-			asSpan(OTHER& container)
-		{
-			if constexpr (std::is_trivial<OTHER>::value == false &&
-				is_trivial_container<OTHER>::value == false)
-			{
-				static_assert(0, "Coproto does not know how to send & receiver your type. Coproto can send "
-					"type T that satisfies \n\n\tstd::is_trivial<T>::value == true\n\tcoproto::is_trivial_container<T>::value == true\n\n"
-					"types like int, char, u8 are trivial. Types like std::vector<int> are trivial container. The container must look "
-					"like a vector. For a complete specification of coproto::is_trivial_container, see coproto/Common/TypeTraits.h");
-			}
-		}
+		//template<typename OTHER>
+		//enable_if_t<std::is_trivial<OTHER>::value == false && 
+		//	is_trivial_container<OTHER>::value == false, span<u8>>
+		//	asSpan(OTHER& container)
+		//{
+		//	static_assert(0, "Coproto does not know how to send & receiver our type. Coproto can send "
+		//		"type T that satisfies \n\n\tstd::is_trivial<T>::value == true\n\tcoproto::is_trivial_container<T>::value == true\n\n"
+		//		"types like int, char, u8 are trivial. Types like std::vector<int> are trivial container. The container must look "
+		//		"like a vector. For a complete specification of coproto::is_trivial_container, see coproto/Common/TypeTraits.h");
+		//	//return span<u8>((u8*)&container, u8Size(container));
+		//}
 
 		template<typename Container>
 		enable_if_t<is_resizable_trivial_container<Container>::value, span<u8>>
