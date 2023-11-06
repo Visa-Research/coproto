@@ -139,7 +139,7 @@ namespace coproto
 			static_assert(
 				std::is_trivial<OTHER>::value ||
 				is_trivial_container<OTHER>::value,
-				"Coproto does not know how to send & receiver our type. Coproto can send "
+				"Coproto does not know how to send & receiver your type. Coproto can send "
 				"type T that satisfies \n\n\tstd::is_trivial<T>::value == true\n\tcoproto::is_trivial_container<T>::value == true\n\n"
 				"types like int, char, u8 are trivial. Types like std::vector<int> are trivial container. The container must look "
 				"like a vector. For a complete specification of coproto::is_trivial_container, see coproto/Common/TypeTraits.h");
