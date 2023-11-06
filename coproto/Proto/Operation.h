@@ -125,7 +125,7 @@ namespace coproto
 		}
 
 		template<typename ValueType>
-		enable_if_t<is_trivial_container<Container>::value == false, span<u8>>
+		enable_if_t<is_trivial_container<ValueType>::value == false, span<u8>>
 			asSpan(ValueType& container)
 		{
 			static_assert(
