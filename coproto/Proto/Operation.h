@@ -129,8 +129,8 @@ namespace coproto
 			asSpan(ValueType& container)
 		{
 			static_assert(
-				std::is_trivial<Container>::value ||
-				is_trivial_container<Container>::value,
+				std::is_trivial<ValueType>::value ||
+				is_trivial_container<ValueType>::value,
 				"Coproto does not know how to send & receiver our type. Coproto can send "
 				"type T that satisfies \n\n\tstd::is_trivial<T>::value == true\n\tcoproto::is_trivial_container<T>::value == true\n\n"
 				"types like int, char, u8 are trivial. Types like std::vector<int> are trivial container. The container must look "
