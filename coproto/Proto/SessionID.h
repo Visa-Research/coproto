@@ -17,6 +17,9 @@
 
 namespace coproto
 {
+	struct SessionID;
+	std::ostream& operator<<(std::ostream& out, const SessionID& s);
+
 	struct SessionID
 	{
 	private:
@@ -36,6 +39,12 @@ namespace coproto
 
 		SessionID derive()
 		{
+
+			auto bHash = [](u64 v)
+			{
+				return v * (v - 1) * (v - 2) - 23 * v;
+			};
+
 			SessionID ret;
 			ret.mVal[0] = mVal[0];
 			ret.mVal[1] = mVal[1];
@@ -45,7 +54,7 @@ namespace coproto
 			{
 				u64& l = ret.mVal[(i & 1) ^ 0];
 				u64& r = ret.mVal[(i & 1) ^ 1];
-				l = std::hash<u64>{}(r + mChildIdx + 32243534) ^ l ^ 9478532833;
+				l = bHash(r + mChildIdx + 32243534) ^ l ^ 9478532833;
 			}
 			ret.mVal[0] ^= mVal[0];
 			ret.mVal[1] ^= mVal[1];
