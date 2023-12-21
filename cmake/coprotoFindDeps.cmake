@@ -143,7 +143,7 @@ if(COPROTO_ENABLE_BOOST)
         endif()
         #set(Boost_DEBUG ON)  #<---------- Real life saver
 
-        find_package(Boost 1.77.0 COMPONENTS system thread regex ${ARGS} ${COPROTO_FIND_PACKAGE_OPTIONS})
+        find_package(Boost 1.84.0 COMPONENTS system thread regex ${ARGS} ${COPROTO_FIND_PACKAGE_OPTIONS})
     endmacro()
 
     
@@ -160,7 +160,7 @@ if(COPROTO_ENABLE_BOOST)
     FIND_BOOST(REQUIRED)
 
     if(NOT Boost_FOUND)
-        message(FATAL_ERROR "Failed to find boost 1.77. When building coproto, add -DCOPROTO_FETCH_BOOST=ON or -DCOPROTO_FETCH_AUTO=ON to auto download.")
+        message(FATAL_ERROR "Failed to find boost 1.84. When building coproto, add -DCOPROTO_FETCH_BOOST=ON or -DCOPROTO_FETCH_AUTO=ON to auto download.")
     endif()
 
     message(STATUS "\n\nBoost_LIB: ${Boost_LIBRARIES}" )

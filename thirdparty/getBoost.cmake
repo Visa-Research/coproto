@@ -1,13 +1,13 @@
 
 
-set(BOOST_VERSION "77")
+set(BOOST_VERSION "84")
 set(BOOST_NAME    "boost_1_${BOOST_VERSION}_0")
 set(CLONE_DIR     "${COPROTO_THIRDPARTY_CLONE_DIR}/${BOOST_NAME}")
 set(ARCH_PATH     "${COPROTO_THIRDPARTY_CLONE_DIR}/${BOOST_NAME}.tar.bz2")
 set(INSTALL_DIR   ${COPROTO_STAGE})
 set(URL           "https://boostorg.jfrog.io/artifactory/main/release/1.${BOOST_VERSION}.0/source/boost_1_${BOOST_VERSION}_0.tar.bz2")
 set(LOG_FILE      "${CMAKE_CURRENT_LIST_DIR}/log-boost.txt")
-set(SHA256_VAL    fc9f85fc030e233142908241af7a846e60630aa7388de9a5fafb1f3a26840854)
+set(SHA256_VAL    cc4b893acf645c9d4b698e9a0f08ca8846aa5d6c68275c14c3e7949c24109454)
 
 include("${CMAKE_CURRENT_LIST_DIR}/fetch.cmake")
 
@@ -34,7 +34,7 @@ if(MSVC)
     set(FINDVS_PATH "${CMAKE_CURRENT_LIST_DIR}/findvs.ps1")
     set(TEMP_PATH "${COPROTO_THIRDPARTY_CLONE_DIR}/buildBoost_deleteMe.ps1")
     list(APPEND B2_ARGS 
-            toolset=msvc-14.2
+            toolset=msvc-14.3
             architecture=x86 
             address-model=64
             )
