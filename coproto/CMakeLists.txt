@@ -31,7 +31,7 @@ if(COPROTO_CPP20)
         )
     
     else()
-        target_compile_options(coproto PRIVATE $<$<COMPILE_LANGUAGE:CXX>:-std=c++${COPROTO_CPP_VER};-fcoroutines>)
+        target_compile_options(coproto PRIVATE $<$<COMPILE_LANGUAGE:CXX>:-std=c++${COPROTO_CPP_VER}>)
     endif()
 else()
     if(APPLE)
