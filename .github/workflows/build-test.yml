@@ -101,14 +101,23 @@ jobs:
             submodules: recursive
 
       # Runs a set of commands using the runners shell
-      - name: build library
+      - name: build library 20
         run: |
-          python3 build.py  -D COPROTO_ENABLE_BOOST=ON
+          python3 build.py  -D COPROTO_ENABLE_BOOST=ON -DCOPROTO_CPP_VER=20
               
-      - name: unit test
+      - name: unit test 20
         run: |
           ./out/build/osx/frontend/frontend -u
           
+      # Runs a set of commands using the runners shell
+      - name: build library 14
+        run: |
+          python3 build.py  -D COPROTO_ENABLE_BOOST=ON -DCOPROTO_CPP_VER=14
+              
+      - name: unit test 14
+        run: |
+          ./out/build/osx/frontend/frontend -u
+
       - name: find source tree
         run: |
             cd cmake/testProject
