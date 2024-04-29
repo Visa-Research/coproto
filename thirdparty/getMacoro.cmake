@@ -22,6 +22,7 @@ if (NOT macoro_FOUND
                        "-DCMAKE_PREFIX_PATH=${CMAKE_PREFIX_PATH_STR}"
                        -DCMAKE_BUILD_TYPE:STRING=${CMAKE_BUILD_TYPE} 
                        -DMACORO_NO_SYSTEM_PATH=${COPROTO_NO_SYSTEM_PATH}
+                       -DMACORO_FETCH_AUTO=true
                        -DMACORO_CPP_VER=${COPROTO_CPP_VER}
                        -DMACORO_PIC=${COPROTO_PIC}
                        -DMACORO_ASAN=${COPROTO_ASAN}

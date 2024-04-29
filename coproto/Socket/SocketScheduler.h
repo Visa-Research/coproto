@@ -824,7 +824,7 @@ namespace coproto
     #define COPROTO_AWAIT_SET(v, X) v = co_await X
 #else
     #define COPROTO_AWAIT(X) MC_AWAIT(X)
-    #define COPROTO_AWAIT_SET(X) MC_AWAIT_SET(X)
+    #define COPROTO_AWAIT_SET(v,X) MC_AWAIT_SET(v, X)
 #endif
 
         template<typename Sock>
@@ -1138,6 +1138,8 @@ namespace coproto
 #endif
         }
 
+#undef COPROTO_AWAIT
+#undef COPROTO_AWAIT_SET
 
     }
 }
