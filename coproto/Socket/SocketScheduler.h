@@ -750,7 +750,7 @@ namespace coproto
 
 
             coroutine_handle<> flush(coroutine_handle<>h);
-
+      
             bool mLogging = false;
             void enableLogging()
             {
@@ -819,10 +819,18 @@ namespace coproto
             init(ss->get(), sid);
         }
 
+#ifdef MACORO_CPP_20
+    #define COPROTO_AWAIT(X) co_await X
+    #define COPROTO_AWAIT_SET(v, X) v = co_await X
+#else
+    #define COPROTO_AWAIT(X) MC_AWAIT(X)
+    #define COPROTO_AWAIT_SET(X) MC_AWAIT_SET(X)
+#endif
 
         template<typename Sock>
         macoro::eager_task<void> SockScheduler::receiveDataTask(Sock* sock)
         {
+#ifndef MACORO_CPP_20
             MC_BEGIN(macoro::eager_task<void>, this, sock
                 , ec = error_code{}
                 , bt = u64{}
@@ -833,11 +841,21 @@ namespace coproto
                 , restoreReadSize = u64{ 0 }
                 , restoreBuffer = std::vector<u8>{}
             );
+#else
+            auto ec = error_code{};
+            auto bt = u64{};
+            auto buffer = span<u8>{};
+            auto iter = optional<SockScheduler::SlotIter>{};
+            auto slot = SockScheduler::SlotIter{};
+            auto op = (RecvOperation*)nullptr;
+            auto restoreReadSize = u64{ 0 };
+            auto restoreBuffer = std::vector<u8>{};
+#endif
 
 
             while (true)
             {
-                MC_AWAIT(anyRecvOp(this, ec));
+                COPROTO_AWAIT(anyRecvOp(this, ec));
 #ifdef COPROTO_SOCK_LOGGING
                 mRecvLog.push_back("new-recv");
 #endif
@@ -850,7 +868,7 @@ namespace coproto
 #endif
                     restoreBuffer.resize(restoreReadSize);
                     buffer = restoreBuffer;
-                    MC_AWAIT_SET(std::tie(ec, bt), sock->recv(buffer));
+                    COPROTO_AWAIT_SET(std::tie(ec, bt), sock->recv(buffer));
                     mBytesReceived += bt;
                     assert((static_cast<bool>(ec) ^ (bt == buffer.size())) && (bt <= buffer.size()));
 
@@ -865,7 +883,7 @@ namespace coproto
                     mRecvLog.push_back("header");
 #endif
                     buffer = getRecvHeader();
-                    MC_AWAIT_SET(std::tie(ec, bt), sock->recv(buffer));
+                    COPROTO_AWAIT_SET(std::tie(ec, bt), sock->recv(buffer));
                     mBytesReceived += bt;
                     assert((static_cast<bool>(ec) ^ (bt == buffer.size())) && (bt <= buffer.size()));
 
@@ -878,7 +896,7 @@ namespace coproto
                         mRecvLog.push_back("header-meta");
 #endif
                         buffer = span<u8>((u8*)&mRecvControlBlock, sizeof(mRecvControlBlock));
-                        MC_AWAIT_SET(std::tie(ec, bt), sock->recv(buffer));
+                        COPROTO_AWAIT_SET(std::tie(ec, bt), sock->recv(buffer));
                         mBytesReceived += bt;
                         assert((static_cast<bool>(ec) ^ (bt == buffer.size())) && (bt <= buffer.size()));
 
@@ -904,7 +922,7 @@ namespace coproto
 #ifdef COPROTO_SOCK_LOGGING
                 mRecvLog.push_back("getRequestedRecvSlot-enter");
 #endif
-                MC_AWAIT_SET(iter, getRequestedRecvSlot{ this });
+                COPROTO_AWAIT_SET(iter, getRequestedRecvSlot{ this });
                 mHaveRecvHeader = false;
 
                 if (mClosed) {
@@ -929,7 +947,7 @@ namespace coproto
                     continue;
                 }
 
-                MC_AWAIT_SET(std::tie(ec, bt), sock->recv(buffer, mRecvToken));
+                COPROTO_AWAIT_SET(std::tie(ec, bt), sock->recv(buffer, mRecvToken));
                 mBytesReceived += bt;
                 assert((static_cast<bool>(ec) ^ (bt == buffer.size())) && (bt <= buffer.size()));
 
@@ -945,9 +963,11 @@ namespace coproto
                     continue;
             }
 
-            MC_AWAIT(macoro::suspend_always{});
+            COPROTO_AWAIT(macoro::suspend_always{});
 
+#ifndef MACORO_CPP_20
             MC_END();
+#endif
         }
 
 
@@ -955,6 +975,7 @@ namespace coproto
         template<typename Sock>
         macoro::eager_task<void> SockScheduler::makeSendTask(Sock* sock)
         {
+#ifndef MACORO_CPP_20
             MC_BEGIN(macoro::eager_task<void>, this, sock
                 , ec = error_code{}
                 , bt = u64{}
@@ -965,10 +986,20 @@ namespace coproto
                 , buffer = span<u8>{}
                 , op = (SendOperation*)nullptr
             );
+#else
+            auto ec = error_code{};
+            auto bt = u64{};
+            auto restoreBuffer = std::vector<u8>{};
+            auto iter = optional<SockScheduler::SlotIter>{};
+            auto slot = SlotIter{};
+            auto data = span<u8>{};
+            auto buffer = span<u8>{};
+            auto op = (SendOperation*)nullptr;
+#endif          
             while (true)
             {
 
-                MC_AWAIT_SET(iter, NextSendOp(this, ec));
+                COPROTO_AWAIT_SET(iter, NextSendOp(this, ec));
 #ifdef COPROTO_SOCK_LOGGING
                 mSendLog.push_back("new-send");
 #endif
@@ -989,7 +1020,7 @@ namespace coproto
 #endif
 
                     buffer = restoreBuffer;
-                    MC_AWAIT_SET(std::tie(ec, bt), sock->send(buffer, mSendToken));
+                    COPROTO_AWAIT_SET(std::tie(ec, bt), sock->send(buffer, mSendToken));
                     mBytesSent += bt;
 
                     // we must either 
@@ -1028,7 +1059,7 @@ namespace coproto
 
                     //std::cout << "sending open " << this << std::endl;
                     buffer = getSendCtrlBlk2();
-                    MC_AWAIT_SET(std::tie(ec, bt), sock->send(buffer, mSendToken));
+                    COPROTO_AWAIT_SET(std::tie(ec, bt), sock->send(buffer, mSendToken));
                     mBytesSent += bt;
                     assert((static_cast<bool>(ec) ^ (bt == buffer.size())) && (bt <= buffer.size()));
 
@@ -1056,7 +1087,7 @@ namespace coproto
 #endif
 
                 buffer = getSendHeader();
-                MC_AWAIT_SET(std::tie(ec, bt), sock->send(buffer, mSendToken));
+                COPROTO_AWAIT_SET(std::tie(ec, bt), sock->send(buffer, mSendToken));
                 mBytesSent += bt;
                 assert((static_cast<bool>(ec) ^ (bt == buffer.size())) && (bt <= buffer.size()));
 
@@ -1080,7 +1111,7 @@ namespace coproto
 #ifdef COPROTO_SOCK_LOGGING
                 mSendLog.push_back("body");
 #endif
-                MC_AWAIT_SET(std::tie(ec, bt), sock->send(data, mSendToken));
+                COPROTO_AWAIT_SET(std::tie(ec, bt), sock->send(data, mSendToken));
                 mBytesSent += bt;
                 assert((static_cast<bool>(ec) ^ (bt == data.size())) && (bt <= data.size()));
 
@@ -1100,9 +1131,11 @@ namespace coproto
                     continue;
             }
 
-            MC_AWAIT(macoro::suspend_always{});
+            COPROTO_AWAIT(macoro::suspend_always{});
 
+#ifndef MACORO_CPP_20
             MC_END();
+#endif
         }
 
 

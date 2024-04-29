@@ -275,8 +275,9 @@ namespace coproto
 				void await_suspend(macoro::coroutine_handle<> h);
 
 #ifdef COPROTO_CPP20
-				std::coroutine_handle<> await_suspend(std::coroutine_handle<> h) {
-					return await_suspend(macoro::coroutine_handle<>(h)).std_cast();
+				void await_suspend(std::coroutine_handle<> h) {
+					auto h2 = macoro::coroutine_handle<>(h);
+					await_suspend(h2);
 				}
 #endif
 				void callback(boost::system::error_code ec, std::size_t bt,

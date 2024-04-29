@@ -300,7 +300,14 @@ namespace coproto
 			{
 				return mSock->flush(h);
 			}
-
+#ifdef MACORO_CPP_20
+			std::coroutine_handle<> await_suspend(std::coroutine_handle<> h)
+			{
+				auto h2 = coroutine_handle<>(h);
+				auto f = mSock->flush(h2);
+				return f.std_cast();
+			}
+#endif
 			void await_resume() {};
 		};
 
