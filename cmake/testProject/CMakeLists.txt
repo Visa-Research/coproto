@@ -21,7 +21,7 @@ message(STATUS "COPROTO_LOGGING        = ${COPROTO_LOGGING}")
 
 if(MSVC)
     target_compile_options( main PRIVATE
-        $<$<COMPILE_LANGUAGE:CXX>:/std=c++${COPROTO_CPP_VER}>
+        $<$<COMPILE_LANGUAGE:CXX>:/std:c++${COPROTO_CPP_VER}>
     )
 else()
     target_compile_options( main PRIVATE
