@@ -30,7 +30,7 @@ jobs:
       # Runs a set of commands using the runners shell
       - name: build cpp14
         run: |
-          python3 build.py -D COPROTO_ENABLE_BOOST=ON -D COPROTO_ENABLE_OPENSSL=ON -DCOPROTO_ASAN=true  -DCMAKE_BUILD_TYPE=RELWITHDEBINFO -DCOPROTO_CPP_VER=14
+          python3 build.py -D COPROTO_ENABLE_BOOST=OFF -D COPROTO_ENABLE_OPENSSL=OFF -DCOPROTO_ASAN=true  -DCMAKE_BUILD_TYPE=RELWITHDEBINFO -DCOPROTO_CPP_VER=14
           
       - name: unit test cpp14
         run: |
