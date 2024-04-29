@@ -11,7 +11,7 @@
         "CMAKE_BUILD_TYPE": "Debug",
         "COPROTO_FETCH_AUTO": "ON",
         "COPROTO_ENABLE_BOOST": "ON",
-        "COPROTO_ENABLE_OPENSSL": true,
+        "COPROTO_ENABLE_OPENSSL": false,
         "COPROTO_CPP_VER": "20",
         "VERBOSE_FETCH": true,
         "CMAKE_INSTALL_PREFIX": "${sourceDir}/out/install/${presetName}"
@@ -42,7 +42,7 @@
         "COPROTO_FETCH_AUTO": "ON",
         "COPROTO_ENABLE_BOOST": false,
         "COPROTO_SOCK_LOGGING": true,
-        "COPROTO_CPP_VER": "14",
+        "COPROTO_CPP_VER": "20",
         "VERBOSE_FETCH": true,
         "CMAKE_INSTALL_PREFIX": "${sourceDir}/out/install/${presetName}"
       },

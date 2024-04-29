@@ -37,7 +37,7 @@ if (NOT macoro_FOUND
         run(NAME "Cloning ${GIT_REPOSITORY}" CMD ${DOWNLOAD_CMD} WD ${COPROTO_THIRDPARTY_CLONE_DIR})
     endif()
 
-    #run(NAME "Checkout ${GIT_TAG} " CMD ${CHECKOUT_CMD}  WD ${CLONE_DIR})
+    run(NAME "Checkout ${GIT_TAG} " CMD ${CHECKOUT_CMD}  WD ${CLONE_DIR})
     run(NAME "Configure"       CMD ${CONFIGURE_CMD} WD ${CLONE_DIR})
     run(NAME "Build"           CMD ${BUILD_CMD}     WD ${CLONE_DIR})
     run(NAME "Install"         CMD ${INSTALL_CMD}   WD ${CLONE_DIR})

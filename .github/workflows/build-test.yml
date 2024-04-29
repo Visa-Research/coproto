@@ -184,7 +184,7 @@ jobs:
       - name: build library cpp20
         run: |
           rm -re -fo out/
-          python3 build.py -G Ninja  -D COPROTO_ENABLE_BOOST=ON -DCOPROTO_CPP_VER=14
+          python3 build.py -G Ninja  -D COPROTO_ENABLE_BOOST=ON -DCOPROTO_CPP_VER=20
       
       - name: unit test
         run: |
