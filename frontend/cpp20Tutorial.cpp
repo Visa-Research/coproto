@@ -242,9 +242,9 @@ namespace {
             // throw if the client tells us to.
             if (doThrow)
             {
-                std::cout << "errorServer throwing at " << i << std::endl;
-                sock.close();
-                throw std::runtime_error("doThrow");
+                int wrongSizeMsg = 0;
+                co_await sock.send(wrongSizeMsg);
+                continue;
             }
 
             co_await sock.send(doThrow);
@@ -287,11 +287,18 @@ namespace {
         try {
             // throw if error.
             std::get<0>(ec).result();
+        }
+        catch (std::exception& e)
+        {
+            std::cout << e.what() << std::endl;
+        }
+        try {
+            // throw if error.
             std::get<1>(ec).result();
         }
         catch (std::exception& e)
         {
-            std::cout << "error: " << e.what() << std::endl;
+			std::cout << e.what() << std::endl;
         }
     }
 
@@ -338,6 +345,7 @@ namespace {
             // here is where we wrap the call, converting
             // any exception to an error_code ec.
             macoro::result<void> result = co_await (sock.recv(doThrow) | macoro::wrap());
+
             try {
                 result.value();
             }
@@ -346,7 +354,7 @@ namespace {
                 std::cout << "recv(...) returned ec = " << e.what() << std::endl;
 
                 // we can propagate the error by throwing
-                throw e;
+                throw;
             }
         }
     }
@@ -356,10 +364,25 @@ namespace {
         std::cout << Color::Green << " ----------- c++20 wrapExample ----------- " << std::endl << Color::Default;
         auto sockets = LocalAsyncSocket::makePair();
 
-        sync_wait(when_all_ready(
+        auto results = sync_wait(when_all_ready(
             wrapServer(sockets[0]),
             wrapClient(6, sockets[1])
         ));
+
+        try {
+            std::get<0>(results).result();
+        }
+        catch (std::exception& e)
+        {
+            std::cout << "server exception:\n" << e.what() << std::endl;;
+        }
+        try {
+            std::get<1>(results).result();
+        }
+        catch (std::exception& e)
+        {
+            std::cout << "client exception:\n" << e.what() << std::endl;;
+        }
     }
 
 

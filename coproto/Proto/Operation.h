@@ -13,6 +13,7 @@
 #include "coproto/Common/InlinePoly.h"
 #include "coproto/Common/error_code.h"
 #include "coproto/Common/Function.h"
+#include "macoro/trace.h"
 
 namespace coproto
 {
@@ -171,7 +172,7 @@ namespace coproto
 		}
 
 
-		struct SendBuffer
+		struct SendBuffer : macoro::basic_traceable
 		{
 			InlinePoly<SendOp, sizeof(u64) * 8> mStorage;
 
@@ -185,7 +186,7 @@ namespace coproto
 		};
 
 
-		struct RecvBuffer
+		struct RecvBuffer : macoro::basic_traceable
 		{
 			std::exception_ptr mExPtr;
 			void setError(std::exception_ptr e) {

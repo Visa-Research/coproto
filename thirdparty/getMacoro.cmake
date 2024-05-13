@@ -1,6 +1,6 @@
 
 set(GIT_REPOSITORY      "https://github.com/ladnir/macoro.git")
-set(GIT_TAG             "3a27c54637bf66915d4ce5aac00a9212710e24df" )
+set(GIT_TAG             "8ad7054724b50f47d6712ea7dec4c7cc411aac43" )
 
 set(CLONE_DIR "${COPROTO_THIRDPARTY_CLONE_DIR}/macoro")
 set(BUILD_DIR "${CLONE_DIR}/out/build/${COPROTO_CONFIG}")

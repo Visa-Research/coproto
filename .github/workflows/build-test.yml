@@ -28,23 +28,6 @@ jobs:
             submodules: recursive
 
       # Runs a set of commands using the runners shell
-      - name: build cpp14
-        run: |
-          python3 build.py -D COPROTO_ENABLE_BOOST=OFF -D COPROTO_ENABLE_OPENSSL=OFF -DCOPROTO_ASAN=true  -DCMAKE_BUILD_TYPE=RELWITHDEBINFO -DCOPROTO_CPP_VER=14
-          
-      - name: unit test cpp14
-        run: |
-          ./out/build/linux/frontend/frontend -u
-          
-      - name: find source tree
-        run: |
-            cd cmake/testProject
-            cmake -S . -B out/  -DCMAKE_BUILD_TYPE=Release -D CMAKE_PREFIX_PATH=../../
-            cmake --build out/
-            ./out/main
-            rm -rf out/
-            cd ../..
-        
       - name: build cpp20
         run: |
           rm -rf out/
@@ -108,15 +91,6 @@ jobs:
       - name: unit test 20
         run: |
           ./out/build/osx/frontend/frontend -u
-          
-      # Runs a set of commands using the runners shell
-      - name: build library 14
-        run: |
-          python3 build.py  -D COPROTO_ENABLE_BOOST=ON -DCOPROTO_CPP_VER=14
-              
-      - name: unit test 14
-        run: |
-          ./out/build/osx/frontend/frontend -u
 
       - name: find source tree
         run: |
@@ -171,25 +145,6 @@ jobs:
       - uses: seanmiddleditch/gha-setup-ninja@v3
       - uses: ilammy/msvc-dev-cmd@v1
 
-
-      # Runs a set of commands using the runners shell
-      - name: build library cpp14
-        run: |
-          python3 build.py -G Ninja  -D COPROTO_ENABLE_BOOST=ON -DCOPROTO_CPP_VER=14
-      
-      - name: unit test
-        run: |
-          ./out/build/x64-Release/frontend/frontend.exe -u
-          
-      - name: find source tree
-        run: |
-            cd cmake/testProject
-            cmake -S . -B out/  -DCMAKE_BUILD_TYPE=Release -D CMAKE_PREFIX_PATH=../../
-            cmake --build out/ --config Release
-            ./out/Release/main.exe
-            rm -r -fo out/
-            cd ../..
-            
       - name: build library cpp20
         run: |
           rm -re -fo out/

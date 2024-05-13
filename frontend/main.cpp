@@ -18,7 +18,6 @@
 
 int main(int argc, char** argv)
 {
-
 	coproto::CLP cmd(argc, argv);
 
 	if (cmd.isSet("u") == false)

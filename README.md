@@ -1,11 +1,10 @@
 ![](./misc/banner.png)
 =====
 
-Coproto is a flexible *C++14* or *C++20* cross-platform protocol framework based on coroutines. The primary design goal of Coproto is to enable easy-to-write, high-performance protocols that can be run in any environment. Protocols are written in a synchronous manner (see below) but can be executed asynchronously across one or more threads. See the tutorials [C++20](https://github.com/Visa-Research/coproto/blob/master/frontend/cpp20Tutorial.cpp), [C++14](https://github.com/Visa-Research/coproto/blob/master/frontend/cpp14Tutorial.cpp), [Custom Socket](https://github.com/Visa-Research/coproto/blob/master/frontend/SocketTutorial.cpp).
+Coproto is a flexible *C++20* cross-platform protocol framework based on coroutines. The primary design goal of Coproto is to enable easy-to-write, high-performance protocols that can be run in any environment. Protocols are written in a synchronous manner (see below) but can be executed asynchronously across one or more threads. See the tutorials [C++20](https://github.com/Visa-Research/coproto/blob/master/frontend/cpp20Tutorial.cpp), [Custom Socket](https://github.com/Visa-Research/coproto/blob/master/frontend/SocketTutorial.cpp).
 
 ### Features:
 * **Coroutine abstraction**: Protocols can be written in a synchronous manner and evaluated in an asynchronous manner.
-* **Backwards compatibility**: Coproto uses the C\++20 coroutine model but still allows for code to run on C++14.
 * **Concurrent composition of multiple protocols**: Multiple protocols can be concurrently executed on a single socket. Coproto ensures that each concurrent protocol receives the correct messages. 
 * **Single or multi-threaded**: A protocol can be executed on multiply threads while sharing a single socket. Coproto manages the logic required to ensure each thread/sub-protocol gets the correct messages.
 * **Local or network communication**: Coproto does not mandate any particular socket type, e.g. *posix, boost::asio*, but instead allows the user to integrate their socket of choice. ALternatively, the included BufferingSocket allows the caller to get/set the next message for any protocol. 
@@ -39,27 +38,6 @@ void echoExample()
 }
 ```
 
-**C++14 Echo server example:**
-To achieve the same functionality in C++14, the library resorts to macros to emulate coroutines.  Each protocol begins with the `MC_BEGIN` macro which performs a [lambda capture ](https://en.cppreference.com/w/cpp/language/lambda) of all local variables to be used in the protocol. The `MC_AWAIT` macro can then be used to await some awaitable, e.g. `task<>`. See the [C++14 tutorial](https://github.com/Visa-Research/coproto/blob/master/frontend/cpp14Tutorial.cpp).
-```cpp
-task<> echoClient(std::string message, Socket& sock) {
-    // perform a lambda capture of the parameters
-    MC_BEGIN(task<>, message, &sock);
-    MC_AWAIT(sock.send(std::move(message)));
-    MC_AWAIT(sock.recvResize(message));
-    MC_END();
-}
-
-task<> echoServer(Socket& sock) {
-    // perform a lambda capture of the parameters
-    MC_BEGIN(task<>, &sock, message = std::string{});
-    MC_AWAIT(sock.recvResize(message));
-    MC_AWAIT(sock.send(message));
-    MC_END();
-}
-```
-
-
 ## Build
 
 The library is *cross-platform* and has been tested on Windows, Mac, and Linux. 
@@ -67,20 +45,13 @@ If it does not compile, please submit an issue with details.
 CMake 3.15+ is required and the helper build script assumes python 3. 
 The library can be build directly via cmake or with the `build.py` script.
 
-Build the C++14 library:
+Build the C++20 library with coroutines:
 ```
 git clone ...
 cd coproto
 python3 build.py
 ```
 The main executable with examples is `frontend` and is located in the build directory, eg `out/build/linux/frontend/frontend.exe, out/build/x64-Release/frontend/Release/frontend.exe` depending on the OS.
-
-Build the C++20 library with coroutines:
-```
-git clone ...
-cd coproto
-python3 build.py -D COPROTO_CPP_VER=20 
-```
 
 ### Options
 Various options can be set when building the library. These are set via `cmake` or `build.py` with `-D OPTION=VALUE` syntax, e.g. `-D COPROTO_FETCH_AUTO=true`.
