@@ -108,11 +108,11 @@ namespace {
     {
         // no need to sent the size.
         // Containers can be dynamically resized.
-        std::string message;
+        std::string message, message2;
         co_await sock.recvResize(message);
 
         // or have the container returned.
-        auto message2 = co_await sock.recv<std::string>();
+        message2 = co_await sock.recv<std::string>();
 
         std::cout << "echo server received: " << message << " " << message2 << std::endl;
 

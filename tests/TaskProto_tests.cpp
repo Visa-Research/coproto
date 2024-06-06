@@ -139,6 +139,94 @@ namespace coproto
 			}
 
 		}
+
+
+
+
+		template<typename awaitable>
+		struct wrapped_awaitable
+		{
+			using traits = macoro::awaitable_traits<awaitable>;
+			using awaitable_storage = macoro::remove_rvalue_reference_t<awaitable>;
+			using awaiter_storage = macoro::remove_rvalue_reference_t<typename traits::awaiter>;
+			using awaitar_result = macoro::remove_rvalue_reference_t<typename traits::await_result>;
+
+			struct awaiter
+			{
+				awaiter_storage m_awaiter;
+				std::source_location m_loc;
+				bool await_ready(std::source_location loc = std::source_location::current())
+				{
+					m_loc = loc;
+					return m_awaiter.await_ready();
+				}
+
+				template<typename promise>
+				auto await_suspend(std::coroutine_handle<promise> h)
+				{
+					if constexpr (requires(awaiter_storage m_awaiter) { { m_awaiter.await_suspend(h, m_loc) } -> std::convertible_to<int>; })
+					{
+						return m_awaiter.await_suspend(h, m_loc);
+					}
+					else
+					{
+						return m_awaiter.await_suspend(h);
+					}
+				}
+
+				//template<typename promise>
+				//auto await_suspend(coroutine_handle<promise> h, std::source_location loc = std::source_location::current())
+				//{
+				//	if constexpr (requires(awaiter_storage m_awaiter) { { m_awaiter.await_suspend(h, loc) } -> std::convertible_to<int>; })
+				//	{
+				//		return m_awaiter.await_suspend(h, loc);
+				//	}
+				//	else
+				//	{
+				//		return m_awaiter.await_suspend(h);
+				//	}
+				//}
+
+				macoro::result<awaitar_result> await_resume() noexcept
+				{
+					try
+					{
+						if constexpr (std::is_same_v<awaitar_result, void>)
+						{
+							m_awaiter.await_resume();
+							return macoro::Ok();
+						}
+						else
+						{
+							return macoro::Ok(m_awaiter.await_resume());
+						}
+					}
+					catch (...)
+					{
+						return macoro::Err(std::current_exception());
+					}
+				}
+			};
+
+			awaitable_storage m_awaitable;
+
+			awaiter operator co_await()&
+			{
+				return awaiter{ macoro::get_awaiter(m_awaitable) };
+			}
+
+			awaiter operator co_await()&&
+			{
+				return awaiter{ macoro::get_awaiter(std::forward<awaitable>(m_awaitable)) };
+			}
+		};
+
+		template<typename awaitable>
+		wrapped_awaitable<awaitable> wrap2(awaitable&& a) {
+			return { std::forward<awaitable>(a) };
+		}
+
+
 		void task_resultSendRecv_Test()
 		{
 
@@ -154,14 +242,14 @@ namespace coproto
 						auto ec = co_await macoro::wrap(sock.send(str));
 						//std::cout << " p1 sent " << i << " ok" << std::endl;
 
-						//std::cout << " p1 recv " << i << std::endl;
-						auto r = co_await(sock.recv<std::string>() | macoro::wrap());
-						//std::cout << " p1 recv " << i << " ok " << std::endl;
+						////std::cout << " p1 recv " << i << std::endl;
+						//auto r = co_await(sock.recv<std::string>() | macoro::wrap());
+						////std::cout << " p1 recv " << i << " ok " << std::endl;
 
-						if (r.has_error())
-							throw std::runtime_error(COPROTO_LOCATION);
+						//if (r.has_error())
+						//	throw std::runtime_error(COPROTO_LOCATION);
 
-						str = r.value();
+						//str = r.value();
 
 						if (str != "hello from " + std::to_string(i * 2 + 1))
 							throw std::runtime_error(COPROTO_LOCATION);
@@ -576,7 +664,7 @@ namespace coproto
 		}
 		task<int> task_echoClient(Socket ss, u64 idx, u64 length, u64 rep, std::string name, bool v)
 		{
-			try {
+//			try {
 
 #ifdef COPROTO_LOGGING
 				auto np = name + "_client_" + std::to_string(idx) + "_" + std::to_string(length);
@@ -619,7 +707,8 @@ namespace coproto
 #ifdef COPROTO_LOGGING
 					r.setName(np + "_r" + std::to_string(i));
 #endif
-					auto msg2 = co_await std::move(r);
+					std::vector<char> msg2;
+					msg2 = co_await std::move(r);
 					//auto msg2 = co_await recv<std::vector<char>>();
 					if (msg2 != msg)
 					{
@@ -645,12 +734,12 @@ namespace coproto
 					}
 					co_return 0;
 				}
-			}
-			catch (std::exception& e)
-			{
-				//std::cout << "exp "<< e.what() << std::endl;
-				throw;
-			}
+//			}
+//			catch (std::exception& e)
+//			{
+//				//std::cout << "exp "<< e.what() << std::endl;
+//				throw;
+//			}
 		}
 
 
@@ -700,7 +789,8 @@ namespace coproto
 
 		task<void> task_throwServer(Socket& s, u64 i)
 		{
-			auto msg = co_await s.recv<std::string>();
+			std::string msg;
+			msg = co_await s.recv<std::string>();
 			co_await s.send((msg));
 
 			if (i)

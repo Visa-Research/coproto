@@ -85,7 +85,7 @@ jobs:
       # Runs a set of commands using the runners shell
       - name: build library 20
         run: |
-          python3 build.py  -D COPROTO_ENABLE_BOOST=ON -DCOPROTO_CPP_VER=20
+          python3 build.py  -D COPROTO_ENABLE_BOOST=ON -DCOPROTO_CPP_VER=20 -DCOPROTO_ASAN=ON
               
       - name: unit test 20
         run: |
