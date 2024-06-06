@@ -35,6 +35,7 @@ namespace coproto
 		void task_errorSocket_Test();
 		void task_cancel_send_test();
 		void task_cancel_recv_test();
+		void task_destroySelf_test();
 #else
 
 		inline void task_proto_test(){ throw UnitTestSkipped("CORPOTO_CPP20 not defined."); }
@@ -56,6 +57,7 @@ namespace coproto
 		inline void task_errorSocket_Test(){ throw UnitTestSkipped("CORPOTO_CPP20 not defined."); }
 		inline void task_cancel_send_test(){ throw UnitTestSkipped("CORPOTO_CPP20 not defined."); }
 		inline void task_cancel_recv_test(){ throw UnitTestSkipped("CORPOTO_CPP20 not defined."); }
+		inline void task_destroySelf_test() { throw UnitTestSkipped("CORPOTO_CPP20 not defined."); }
 #endif
 	}
 

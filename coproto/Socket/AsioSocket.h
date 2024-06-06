@@ -21,8 +21,8 @@
 #include <string>
 #include <vector>
 
-#define COPROTO_ASIO_LOG
 #ifndef NDEBUG
+	#define COPROTO_ASIO_LOG
 	#define COPROTO_ASIO_DEBUG
 #endif
 
@@ -380,22 +380,7 @@ namespace coproto
 		template<typename SocketType>
 		inline void AsioSocket<SocketType>::Sock::close()
 		{
-
-			
-			boost::asio::dispatch(mState->mSock_.get_executor(),
-				[s = mState,
-				lt = mState->mOpCount.lockPtr()
-				]()mutable{
-
-#ifdef COPROTO_ASIO_LOG
-				s->log("close ");
-#endif
-
-				s->mSock_.lowest_layer().close();
-
-				lt.reset();
-
-				});
+			mState->mSock_.lowest_layer().close();
 		}
 
 

@@ -259,8 +259,7 @@ namespace {
 
 	inline void MySocketType::close()
 	{
-		// todo: call close on the underlaying socket.
-		throw COPROTO_RTE;
+		// call close on the underlaying socket.
 	}
 
 	inline coroutine_handle<> MySocketType::SendRecvAwaiter::await_suspend(coroutine_handle<> h)
@@ -385,6 +384,14 @@ namespace {
 				buffer = std::vector<char>{});
 
 			buffer.resize(42);
+
+			using namespace coproto::internal;
+
+
+			//enable_if_t<std::is_base_of<I, U>::value>,
+			//enable_if_t<std::is_constructible<U, Args...>::value>
+			static_assert(coproto::is_poly_emplaceable<SendBuffer, RefSendBuffer, RefSendBuffer&&>::value);
+
 			MC_AWAIT(sock.send(buffer));
 			MC_AWAIT(sock.recv(buffer));
 

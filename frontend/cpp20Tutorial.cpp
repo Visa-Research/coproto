@@ -344,17 +344,17 @@ namespace {
 
             // here is where we wrap the call, converting
             // any exception to an error_code ec.
-            macoro::result<void> result = co_await (sock.recv(doThrow) | macoro::wrap());
+            auto ec = co_await (sock.recv(doThrow) | macoro::wrap());
 
             try {
-                result.value();
+                ec.value();
             }
             catch (std::exception& e)
             {
                 std::cout << "recv(...) returned ec = " << e.what() << std::endl;
 
                 // we can propagate the error by throwing
-                throw;
+                throw e;
             }
         }
     }

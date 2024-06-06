@@ -7,7 +7,7 @@ add_library(coproto STATIC
     "Common/Util.cpp"
     "Socket/SocketScheduler.cpp"
     "Socket/AsioSocket.cpp"
-)
+ "Socket/Executor.h" "Socket/RecvOperation.h" "Socket/SocketFork.h" "Socket/SendOperation.h" "Common/Exceptions.h")
 target_include_directories(coproto PUBLIC 
                     $<BUILD_INTERFACE:${CMAKE_CURRENT_BINARY_DIR}/..>
                     $<INSTALL_INTERFACE:include>) 
@@ -74,7 +74,7 @@ if(COPROTO_ASAN)
 endif()
 
 target_link_libraries(coproto function2::function2)
-target_link_libraries(coproto macoro::macoro)
+target_link_libraries(coproto macoro)
 configure_file(config.h.in "config.h" )
 configure_file("${CMAKE_CURRENT_LIST_DIR}/../cmake/preamble.cmake" "preamble.cmake" COPYONLY)
 configure_file("${CMAKE_CURRENT_LIST_DIR}/../cmake/coprotoFindDeps.cmake" "coprotoFindDeps.cmake" COPYONLY)

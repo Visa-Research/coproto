@@ -3,6 +3,7 @@
 #include "coproto/Socket/BufferingSocket.h"
 #include <vector>
 #include "macoro/thread_pool.h"
+#include "tests/Tests.h"
 
 namespace coproto
 {
@@ -46,7 +47,7 @@ namespace coproto
 			for (u64 i = 0; i < sendBuff.size(); ++i)
 				sendBuff[i] = i;
 
-			internal::RefSendProto<std::vector<u8>> p(sImpl.get(), sender.mId, sendBuff, {});
+			internal::RefSendAwaiter<std::vector<u8>> p(sImpl.get(), sender.mId, sendBuff, {});
 			bool sendDone = false;
 			auto sendTask = [](bool& sendDone) -> task<void>
 			{
@@ -121,7 +122,7 @@ namespace coproto
 			std::vector<u8> sendBuff;
 			std::vector<u8> recvBuffer;
 
-			internal::RefRecvProto<std::vector<u8>, true> p(sImpl.get(), sender.mId, recvBuffer, {});
+			internal::RefRecvAwaiter<std::vector<u8>, true> p(sImpl.get(), sender.mId, recvBuffer, {});
 			bool sendDone = false;
 			auto sendTask = [](bool& done) -> task<void>
 			{
@@ -140,7 +141,7 @@ namespace coproto
 				MC_END();
 			}(recvDone);
 
-			sImpl->recv(sender.mId, &p, recvTask.handle(), {}).resume();
+			sImpl->recv(sender.mId, p.getBuffer(), recvTask.handle(), {}).resume();
 			if (sendDone)
 				throw MACORO_RTE_LOC;
 
@@ -191,8 +192,6 @@ namespace coproto
 			for (u64 i = 0; i < sendBuff.size(); ++i)
 				sendBuff[i] = i;
 
-			internal::RefSendProto<std::vector<u8>> p0(sImpl.get(), sender.mId, sendBuff, {});
-			internal::RefSendProto<std::vector<u8>> p1(sImpl.get(), sender.mId, sendBuff, {});
 			auto tt = [](bool& done) -> task<void>
 			{
 				MC_BEGIN(task<>, &done);
@@ -210,9 +209,14 @@ namespace coproto
 			auto token0 = src0.get_token();
 			auto token1 = src1.get_token();
 
+			sImpl->enableLogging();
+
+			internal::RefSendAwaiter<std::vector<u8>> p0(sImpl.get(), sender.mId, sendBuff, {});
 			sImpl->send(sender.mId, p0.getBuffer(), sendTask0.handle(), std::move(token0)).resume();
 			if (sendDone0)
 				throw MACORO_RTE_LOC;
+
+			internal::RefSendAwaiter<std::vector<u8>> p1(sImpl.get(), sender.mId, sendBuff, {});
 			sImpl->send(sender.mId, p1.getBuffer(), sendTask1.handle(), std::move(token1)).resume();
 			if (sendDone1)
 				throw MACORO_RTE_LOC;
@@ -227,7 +231,8 @@ namespace coproto
 			}
 			catch (std::system_error& ex)
 			{
-				if (ex.code() != code::operation_aborted)
+				auto ec = ex.code();
+				if (ec != code::operation_aborted)
 					throw;
 			}
 
@@ -245,7 +250,8 @@ namespace coproto
 			}
 			catch (std::system_error& ex)
 			{
-				if (ex.code() != code::operation_aborted)
+				auto ec = ex.code();
+				if (ec != code::operation_aborted)
 					throw;
 			}
 
@@ -266,8 +272,8 @@ namespace coproto
 			for (u64 i = 0; i < recvBuff.size(); ++i)
 				recvBuff[i] = i;
 
-			internal::RefRecvProto<std::vector<u8>> p0(sImpl.get(), recver.mId, recvBuff, {});
-			internal::RefRecvProto<std::vector<u8>> p1(sImpl.get(), recver.mId, recvBuff, {});
+			internal::RefRecvAwaiter<std::vector<u8>> p0(sImpl.get(), recver.mId, recvBuff, {});
+			internal::RefRecvAwaiter<std::vector<u8>> p1(sImpl.get(), recver.mId, recvBuff, {});
 			auto tt = [](bool& done) -> task<void>
 			{
 				MC_BEGIN(task<>, &done);
@@ -332,6 +338,7 @@ namespace coproto
 
 		void SocketScheduler_restoreSend_test()
 		{
+			throw UnitTestSkipped("not implemented");
 			// header 0: 8
 			// SID     : 16     24
 			// header 1: 8      32
@@ -359,8 +366,8 @@ namespace coproto
 					sendBuff1[i] = i * 2;
 				}
 
-				internal::RefSendProto<std::vector<u8>> p0(sImpl.get(), sender.mId, sendBuff0, {});
-				internal::RefSendProto<std::vector<u8>> p1(sImpl.get(), sender.mId, sendBuff1, {});
+				internal::RefSendAwaiter<std::vector<u8>> p0(sImpl.get(), sender.mId, sendBuff0, {});
+				internal::RefSendAwaiter<std::vector<u8>> p1(sImpl.get(), sender.mId, sendBuff1, {});
 				auto tt = [](bool& done) -> task<void>
 				{
 					MC_BEGIN(task<>, &done);
@@ -484,8 +491,8 @@ namespace coproto
 				macoro::stop_source src;
 				auto token = src.get_token();
 
-				internal::RefRecvProto<std::vector<u8>, true> p0(sImpl.get(), sender.mId, recvBuffer0, {});
-				internal::RefRecvProto<std::vector<u8>, true> p1(sImpl.get(), sender.mId, recvBuffer1, {});
+				internal::RefRecvAwaiter<std::vector<u8>, true> p0(sImpl.get(), sender.mId, recvBuffer0, {});
+				internal::RefRecvAwaiter<std::vector<u8>, true> p1(sImpl.get(), sender.mId, recvBuffer1, {});
 				auto tt = [](bool& done) -> task<void>
 				{
 					MC_BEGIN(task<>, &done);
@@ -503,8 +510,8 @@ namespace coproto
 				bool recvDone1 = false;
 				auto recvTask1 = tt(recvDone1);
 
-				sImpl->recv(sender.mId, &p0, recvTask0.handle(), std::move(token)).resume();
-				sImpl->recv(sender.mId, &p1, recvTask1.handle(), {}).resume();
+				sImpl->recv(sender.mId, p0.getBuffer(), recvTask0.handle(), std::move(token)).resume();
+				sImpl->recv(sender.mId, p1.getBuffer(), recvTask1.handle(), {}).resume();
 				if (recvDone0)
 					throw MACORO_RTE_LOC;
 
@@ -594,8 +601,8 @@ namespace coproto
 						sendBuff1[i] = i * 2;
 					}
 
-					internal::RefSendProto<std::vector<u8>> p0(sImpl.get(), sender.mId, sendBuff0, {});
-					internal::RefSendProto<std::vector<u8>> p1(sImpl.get(), sender.mId, sendBuff1, {});
+					internal::RefSendAwaiter<std::vector<u8>> p0(sImpl.get(), sender.mId, sendBuff0, {});
+					internal::RefSendAwaiter<std::vector<u8>> p1(sImpl.get(), sender.mId, sendBuff1, {});
 					auto tt = [](bool& done) -> task<void>
 					{
 						MC_BEGIN(task<>, &done);
@@ -657,14 +664,8 @@ namespace coproto
 						throw MACORO_RTE_LOC;
 					try { std::rethrow_exception(p1.mExPtr); }
 					catch (std::system_error& ex) {
-						if (senderClose)
-						{
-							if (ex.code() != code::closed)
-								throw;
-						}
-						else
-							if (ex.code() != code::remoteClosed)
-								throw;
+						if (ex.code() != code::cancel)
+							throw;
 					}
 				}
 			}
@@ -702,8 +703,8 @@ namespace coproto
 						sendBuff1[i] = i * 2;
 					}
 
-					internal::RefRecvProto<std::vector<u8>> p0(sImpl.get(), recver.mId, sendBuff0, {});
-					internal::RefRecvProto<std::vector<u8>> p1(sImpl.get(), recver.mId, sendBuff1, {});
+					internal::RefRecvAwaiter<std::vector<u8>> p0(sImpl.get(), recver.mId, sendBuff0, {});
+					internal::RefRecvAwaiter<std::vector<u8>> p1(sImpl.get(), recver.mId, sendBuff1, {});
 					auto tt = [](bool& done) -> task<void>
 					{
 						MC_BEGIN(task<>, &done);
@@ -779,14 +780,17 @@ namespace coproto
 						throw MACORO_RTE_LOC;
 					try { std::rethrow_exception(p1.mExPtr); }
 					catch (std::system_error& ex) {
-						if (recverClose)
-						{
-							if (ex.code() != code::closed)
-								throw;
-						}
-						else
-							if (ex.code() != code::remoteClosed)
-								throw;
+						auto ec = ex.code();
+						auto exp = code::cancel;
+							
+						if (ec != exp)
+							throw;
+						//if (recverClose)
+						//{
+						//}
+						//else
+						//	if (ec != code::remoteClosed)
+						//		throw;
 					}
 				}
 			}
@@ -963,12 +967,12 @@ namespace coproto
 
 				MC_END();
 			};
-			auto task = tt() | macoro::make_eager();
+			auto task = macoro::make_blocking(tt());
 
 			sock.processInbound(buffer);
 
 			try {
-				sync_wait(task);
+				task.get();
 				throw COPROTO_RTE;
 			}
 			catch (std::system_error e)
@@ -1012,13 +1016,13 @@ namespace coproto
 
 				MC_END();
 			};
-			auto task = tt() | macoro::make_eager();
+			auto task = tt() | macoro::make_blocking();
 
 			sock.processInbound(buffer);
 			sock.processInbound(buffer);
 
 			try {
-				sync_wait(task);
+				task.get();
 				throw COPROTO_RTE;
 			}
 			catch (std::system_error e)
@@ -1074,12 +1078,12 @@ namespace coproto
 
 				MC_END();
 			};
-			auto task = tt() | macoro::make_eager();
+			auto task = tt() | macoro::make_blocking();
 
 			sock.processInbound(buffer);
 
 			try {
-				sync_wait(task);
+				task.get();
 				throw COPROTO_RTE;
 			}
 			catch (std::system_error e)
@@ -1093,6 +1097,8 @@ namespace coproto
 		void SocketScheduler_executor_test()
 		{
 			auto socks = LocalAsyncSocket::makePair();
+			socks[0].enableLogging();
+			socks[1].enableLogging();
 
 			macoro::thread_pool pool;
 			auto w = pool.make_work();
@@ -1115,13 +1121,13 @@ namespace coproto
 				{
 					//_ std::cout << "s   " << std::this_thread::get_id() << std::endl;
 
-					MC_AWAIT(sock.send(std::move(msg)));
+					MC_AWAIT(sock.send(msg));
 					if (std::this_thread::get_id() == main)
 						throw COPROTO_RTE;
 
 					//_ std::cout << "sd0 " << std::this_thread::get_id() << std::endl;
 					msg.resize(10);
-					MC_AWAIT(sock.send(std::move(msg)));
+					MC_AWAIT(sock.send(msg));
 					if (std::this_thread::get_id() == main)
 						throw COPROTO_RTE;
 

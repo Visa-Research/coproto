@@ -16,16 +16,16 @@ namespace coproto
 			auto f = std::async([&] { ioc.run(); });
 
 			std::string address("localhost:1212");
+			{
+				auto r = macoro::sync_wait(macoro::when_all_ready(
+					macoro::make_task(AsioAcceptor(address, ioc)),
+					macoro::make_task(AsioConnect(address, ioc))
+				));
 
-			auto r = macoro::sync_wait(macoro::when_all_ready(
-				macoro::make_task(AsioAcceptor(address, ioc)),
-				macoro::make_task(AsioConnect(address, ioc))
-			));
+				std::get<0>(r).result();
+				std::get<1>(r).result();
+			}
 
-			std::get<0>(r).result();
-			std::get<1>(r).result();
-
-			std::vector<u8> buff(10);
 
 			w.reset();
 			f.get();
@@ -124,7 +124,7 @@ namespace coproto
 					MC_AWAIT(a1);
 
 				MC_END();
-			};
+				};
 
 			auto r = macoro::sync_wait(macoro::when_all_ready(task_(0), task_(1)));
 			std::get<0>(r).result();
@@ -135,40 +135,32 @@ namespace coproto
 		}
 		void AsioSocket_asyncSend_test()
 		{
-
-
 			std::vector<u8> sb(10), rb(10);
-
 			macoro::thread_pool::work work;
 			macoro::thread_pool tp(2, work);
 
-
-
-			std::array<AsioSocket,2> ss; 
+			//std::array<AsioSocket, 2> ss;
 			auto task_ = [&](bool sender) -> task<void> {
-
-				MC_BEGIN(task<>, &, sender);
+				//MC_BEGIN(task<>, &, sender);
 				if (sender)
 				{
-					MC_AWAIT_SET(ss[0], AsioAcceptor("localhost:1212", global_io_context()));
+					auto ss = co_await AsioAcceptor("localhost:1212", global_io_context());
 					//std::cout << "connected"<<std::endl; 
-					MC_AWAIT(ss[0].send(std::move(sb)));
+					co_await ss.send(std::move(sb));
 
 
-					MC_AWAIT(ss[0].flush());
+					co_await ss.flush();
 					// destroy the socket before the send operation completes. 
-					ss[0] = {};
+					//ss[0] = {};
 				}
 				else
 				{
-					MC_AWAIT_SET(ss[1], AsioConnect("localhost:1212", global_io_context()));
+					auto ss = co_await AsioConnect("localhost:1212", global_io_context());
 
-					//MC_AWAIT(tp.schedule_after(std::chrono::milliseconds(100)));
-					MC_AWAIT(ss[1].recv(rb));
+					co_await ss.recv(rb);
 				}
-				MC_END();
-			};
-			
+				};
+
 			auto e0 = task_(0)
 				| macoro::start_on(tp);
 			auto e1 = task_(1)
@@ -252,7 +244,7 @@ namespace coproto
 						//MC_AWAIT(macoro::transfer_to(ex[idx]));
 					}
 					MC_END();
-				};
+					};
 
 				macoro::sync_wait(macoro::when_all_ready(f1(0), f1(1), f1(2), f1(3)));
 			}
@@ -310,7 +302,7 @@ namespace coproto
 					}
 
 					MC_END();
-				};
+					};
 
 				auto r = macoro::sync_wait(macoro::when_all_ready(task_(1), task_(0)));
 				delete[] sd;
@@ -353,7 +345,7 @@ namespace coproto
 					}
 
 					MC_END();
-				};
+					};
 
 				auto r = macoro::sync_wait(macoro::when_all_ready(task_(1), task_(0)));
 
@@ -369,7 +361,7 @@ namespace coproto
 		void AsioSocket_parCancellation_test(const CLP& cmd)
 		{
 
-			u64 trials = cmd.getOr("trials",100);
+			u64 trials = cmd.getOr("trials", 100);
 			u64 numOps = 20;
 			boost::asio::io_context ioc;
 			optional<boost::asio::io_context::work> w(ioc);
@@ -417,7 +409,7 @@ namespace coproto
 						memset(buffer.data(), 0, buffer.size());
 					}
 
-					while(buffer.size())
+					while (buffer.size())
 					{
 						++i;
 
@@ -436,7 +428,7 @@ namespace coproto
 							else
 							{
 								MC_AWAIT_SET(r, s[0].mSock->recv(
-									buffer.subspan(0, std::min<u64>(sizeof(i64), buffer.size())), 
+									buffer.subspan(0, std::min<u64>(sizeof(i64), buffer.size())),
 									i < numOps ? tkns[i][idx] : macoro::stop_token{},
 									-i));
 								buffer = buffer.subspan(r.second);
@@ -517,7 +509,7 @@ namespace coproto
 								//v = -i;
 								MC_AWAIT_SET(r, s[1].mSock->send(
 									buffer.subspan(0, std::min<u64>(sizeof(i64), buffer.size())),
-									i < numOps ? tkns[i][idx] : macoro::stop_token{}, 
+									i < numOps ? tkns[i][idx] : macoro::stop_token{},
 									-i));
 								buffer = buffer.subspan(r.second);
 
@@ -530,7 +522,7 @@ namespace coproto
 
 					}
 					MC_END();
-				};
+					};
 				auto r = macoro::sync_wait(macoro::when_all_ready(f1(0), f1(1), f1(2), f1(3)));
 				try
 				{
@@ -618,7 +610,7 @@ namespace coproto
 					}
 
 					MC_END();
-				};
+					};
 
 				auto t0 = f1(0) | macoro::make_eager();
 				auto t1 = f1(1) | macoro::make_eager();

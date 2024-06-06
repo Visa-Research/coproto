@@ -274,6 +274,7 @@ namespace coproto
 
         t.add("InlinePolyTest                        ", tests::InlinePolyTest);
         
+        t.add("LocalAsyncSocket_noop_test            ", tests::LocalAsyncSocket_noop_test);
         t.add("LocalAsyncSocket_sendRecv_test        ", tests::LocalAsyncSocket_sendRecv_test);
         t.add("LocalAsyncSocket_parSendRecv_test     ", tests::LocalAsyncSocket_parSendRecv_test);
         t.add("LocalAsyncSocket_cancellation_test    ", tests::LocalAsyncSocket_cancellation_test);
@@ -339,7 +340,8 @@ namespace coproto
         t.add("task_errorSocket_Test                 ", tests::task_errorSocket_Test);
         t.add("task_cancel_send_test                 ", tests::task_cancel_send_test);
         t.add("task_cancel_recv_test                 ", tests::task_cancel_recv_test);
-
+        t.add("task_destroySelf_test                 ", tests::task_destroySelf_test);
+        
         t.add("task14_proto_test                     ", tests::task14_proto_test);
         t.add("task14_strSendRecv_Test               ", tests::task14_strSendRecv_Test);
         t.add("task14_resultSendRecv_Test            ", tests::task14_resultSendRecv_Test);

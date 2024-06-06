@@ -79,12 +79,13 @@ macro(FIND_MACORO)
 endmacro()
 
 if((COPROTO_FETCH_AUTO OR COPROTO_FETCH_MACORO) AND COPROTO_BUILD)
-    if(NOT COPROTO_FETCH_MACORO)
-        FIND_MACORO(QUIET)
-    endif()
+    #if(NOT COPROTO_FETCH_MACORO)
+    #    FIND_MACORO(QUIET)
+    #endif()
     include("${CMAKE_CURRENT_LIST_DIR}/../thirdparty/getMacoro.cmake")
+else()
+    FIND_MACORO(REQUIRED)
 endif()
-FIND_MACORO(REQUIRED)
 
 
 ## function2

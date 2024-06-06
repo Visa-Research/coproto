@@ -140,7 +140,7 @@ namespace coproto
 		template<typename Container>
 		auto send(Container& t, macoro::stop_token token = {})
 		{
-			return internal::RefSendProto<Container>(mImpl.get(), mId, t, std::move(token));
+			return internal::RefSendAwaiter<Container>(mImpl.get(), mId, t, std::move(token));
 		}
 
 		// Send the Container `t`. A stop_token can be provided to request that the send be 
@@ -152,7 +152,7 @@ namespace coproto
 		template<typename Container>
 		auto send(Container&& t, macoro::stop_token token = {})
 		{
-			return internal::MoveSendProto<Container>(mImpl.get(), mId, std::forward<Container>(t), std::move(token));
+			return internal::MoveSendAwaiter<Container>(mImpl.get(), mId, std::forward<Container>(t), std::move(token));
 		}
 
 		// Receive the next message into the container `r` with a timeout `to`. After the timeout 
@@ -168,7 +168,7 @@ namespace coproto
 		template<typename Container>
 		auto recv(Container& t, macoro::stop_token token = {})
 		{
-			return internal::RefRecvProto<Container, false>(mImpl.get(), mId, t, std::move(token));
+			return internal::RefRecvAwaiter<Container, false>(mImpl.get(), mId, t, std::move(token));
 		}
 
 		// Receive the next message into the container `r`. An optional stop_token can be provided
@@ -176,7 +176,7 @@ namespace coproto
 		template<typename Container>
 		auto recv(Container&& t, macoro::stop_token token = {})
 		{
-			return internal::MoveRecvProto<Container, false>(mImpl.get(), mId, std::forward<Container>(t), std::move(token));
+			return internal::MoveRecvAwaiter<Container, false>(mImpl.get(), mId, std::forward<Container>(t), std::move(token));
 		}
 
 		// Receive the next message and store the message in a class of type Container. An optional 
@@ -185,7 +185,7 @@ namespace coproto
 		template<typename Container>
 		auto recv(macoro::stop_token token = {})
 		{
-			return internal::MoveRecvProto<Container, true>(mImpl.get(), mId, std::move(token));
+			return internal::MoveRecvAwaiter<Container, true>(mImpl.get(), mId, std::move(token));
 		}
 
 		// Receive the next message into the container `r` with a timeout `to`. After the timeout 
@@ -203,7 +203,7 @@ namespace coproto
 		template<typename Container>
 		auto recvResize(Container& t, macoro::stop_token token = {})
 		{
-			return internal::RefRecvProto<Container, true>(mImpl.get(), mId, t, std::move(token));
+			return internal::RefRecvAwaiter<Container, true>(mImpl.get(), mId, t, std::move(token));
 		}
 
 		// returns the number of bytes sent.

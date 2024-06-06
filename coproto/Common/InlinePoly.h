@@ -62,6 +62,9 @@ namespace coproto
 
 			using Storage = typename std::aligned_storage<StorageSize>::type;
 
+			template<typename U, typename... Args>
+			using is_emplaceable = is_poly_emplaceable<Interface, U, Args...>;
+
 			Storage mStorage;
 
 			InlinePoly() = default;
@@ -75,6 +78,15 @@ namespace coproto
 			~InlinePoly()
 			{
 				destruct();
+			}
+
+			template<
+				typename U
+			>
+			InlinePoly(U&& u)
+			{
+				static_assert(is_emplaceable<std::remove_reference_t<U>, U&&>::value);
+				emplace<std::remove_reference_t<U>>(std::forward<U>(u));
 			}
 
 			InlinePoly<Interface, StorageSize>& operator=(InlinePoly<Interface, StorageSize>&& m)
@@ -103,9 +115,6 @@ namespace coproto
 				return *(bool*)&getController();
 			}
 
-
-			template<typename U, typename... Args>
-			using is_emplaceable = is_poly_emplaceable<Interface, U, Args...>;
 
 			template<typename U, typename... Args >
 			enable_if_t<

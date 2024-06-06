@@ -14,6 +14,9 @@
 #include "coproto/Common/error_code.h"
 #include "coproto/Common/Function.h"
 #include "macoro/trace.h"
+#include "macoro/stop.h"
+#include "coproto/Common/macoro.h"
+#include "coproto/Common/Exceptions.h"
 
 namespace coproto
 {
@@ -93,14 +96,7 @@ namespace coproto
 			}
 		};
 
-		struct SendOp
-		{
-			virtual ~SendOp() {}
-			virtual span<u8> asSpan() = 0;
 
-			virtual void setError(std::exception_ptr e) = 0;
-
-		};
 
 		template<typename Container>
 		enable_if_t<has_size_member_func<Container>::value, u64>
@@ -171,29 +167,149 @@ namespace coproto
 			return asSpan(container);
 		}
 
-
-		struct SendBuffer : macoro::basic_traceable
+		// a send buffer wraps a concrete buffer.
+		// This buffer allows the caller to store 
+		// their data within this object. If they
+		// want to know the outcome of the operation,
+		// they should set mExPtr. On error, this will 
+		// be set with the given exception.
+		struct SendBuffer //: macoro::basic_traceable
 		{
-			InlinePoly<SendOp, sizeof(u64) * 8> mStorage;
+			std::exception_ptr* mExPtr = nullptr;
 
-			void setError(std::exception_ptr e) {
-				mStorage->setError(e);
+			SendBuffer(std::exception_ptr* e)
+				:mExPtr(e)
+			{}
+
+			//struct Storage
+			//{
+			//	Storage(std::exception_ptr* e)
+			//		: mExPtr(e)
+			//	{}
+
+			//	virtual span<u8> asSpan() = 0;
+			//};
+
+			//InlinePoly<Storage, sizeof(u64) * 8> mStorage;
+			//span<u8> mData;
+
+			//template<typename S>
+			//SendBuffer(
+			//	std::exception_ptr* e,
+			//	S&& s
+			//)
+			//	: mStorage(std::forward<S>(s))
+			//	, mData(mStorage->asSpan())
+			//{ }
+
+			void setError(error_code e) {
+
+				// some buffers are fire and forget. For these
+				// they wont have a mExPtr;
+				if (mExPtr)
+				{
+					assert(*mExPtr == nullptr);
+					*mExPtr =std::make_exception_ptr(std::system_error(e));
+				}
 			}
 
-			span<u8> asSpan() {
-				return mStorage->asSpan();
-			}
+			virtual span<u8> asSpan() = 0;
 		};
 
-
-		struct RecvBuffer : macoro::basic_traceable
+		// Similar to a send buffer but does not provide storage.
+		// this is because recv operations can not be fire and forget.
+		struct RecvBuffer //: macoro::basic_traceable
 		{
-			std::exception_ptr mExPtr;
-			void setError(std::exception_ptr e) {
-				if (!mExPtr)
-					mExPtr = e;
+			RecvBuffer(std::exception_ptr* e)
+				: mExPtr(e)
+			{
+				assert(e);
+			}
+
+			std::exception_ptr* mExPtr = nullptr;
+			void setError(error_code e) {
+				if(mExPtr)
+					*mExPtr = std::make_exception_ptr(std::system_error(e));
 			}
 			virtual span<u8> asSpan(u64 resize) = 0;
 		};
+
+
+		// a fire and forget send buffer. The lifetime will be managed by
+		// the socket scheduler.
+		template<typename Container>
+		struct MvSendBuffer : public SendBuffer
+		{
+			Container mCont;
+
+			MvSendBuffer(Container&& c, std::exception_ptr* e)
+				: SendBuffer(e)
+				, mCont(std::forward<Container>(c))
+			{}
+
+			span<u8> asSpan() override
+			{
+				return ::coproto::internal::asSpan(mCont);
+			}
+		};
+
+		struct RefSendBuffer : public SendBuffer
+		{
+			template<typename Container>
+			RefSendBuffer(Container& c, std::exception_ptr* e)
+				: SendBuffer(e)
+				, mData(coproto::internal::asSpan(c))
+			{}
+
+			span<u8> mData;
+			span<u8> asSpan() override
+			{
+				return mData;
+			}
+		};
+
+		template<typename Container, bool allowResize>
+		struct RefRecvBuffer : public RecvBuffer
+		{
+			RefRecvBuffer(Container& c, std::exception_ptr* e)
+				: RecvBuffer(e)
+				, mData(c)
+			{}
+
+			Container& mData;
+			span<u8> asSpan(u64 size) override
+			{
+				span<u8> r;
+				if constexpr (allowResize)
+					r = tryResize(size, mData, true);
+				else
+					r = coproto::internal::asSpan(mData);
+
+				if (r.size() != size)
+				{
+					COPROTO_ASSERT(mExPtr);
+					*mExPtr = std::make_exception_ptr(BadReceiveBufferSize(r.size(), size));
+					mExPtr = nullptr;
+				}
+				return r;
+			}
+		};
+
+		// an operation that can be queued. Its is simply a callback.
+		// it is used to check when all pending operations are completed.
+		struct FlushToken
+		{
+			// the callback
+			coroutine_handle<> mHandle;
+
+			FlushToken(coroutine_handle<> h) :mHandle(h) {
+				assert(mHandle);
+			}
+			~FlushToken()
+			{
+				assert(!mHandle);
+			}
+		};
+
 	}
 }

@@ -5,9 +5,17 @@
 #include "macoro/macros.h"
 #include "macoro/thread_pool.h"
 
+
+void coproto::tests::LocalAsyncSocket_noop_test()
+{
+	auto s = LocalAsyncSocket::makePair();
+}
+
 void coproto::tests::LocalAsyncSocket_sendRecv_test()
 {
 	auto s = LocalAsyncSocket::makePair();
+	s[0].enableLogging();
+	s[1].enableLogging();
 
 	u64 count = 0;
 	auto task_ = [&]() -> task<void> {
@@ -303,14 +311,19 @@ void coproto::tests::LocalAsyncSocket_close_test()
 			MC_END();
 		};
 
-		auto t0 = f1(0) | macoro::make_eager();
-		auto t1 = f1(1) | macoro::make_eager();
-		auto t2 = f1(2) | macoro::make_eager();
-		auto t3 = f1(3) | macoro::make_eager();
+		//auto t0 = f1(0) | macoro::make_eager();
+		//auto t1 = f1(1) | macoro::make_eager();
+		//auto t2 = f1(2) | macoro::make_eager();
+		//auto t3 = f1(3) | macoro::make_eager();
+		auto t = macoro::make_blocking(macoro::when_all_ready(
+			f1(0),
+			f1(1),
+			f1(2),
+			f1(3)
+		));
 
 		promise.set_value();
-		macoro::sync_wait(macoro::when_all_ready(std::move(t0), std::move(t1), std::move(t2), std::move(t3)));
-
+		t.get();
 	}
 
 }

@@ -24,6 +24,17 @@ namespace coproto
 	public:
 		const static u64 DefaultCapacity = _DefaultCapacity;
 
+		struct Entry
+		{
+			bool mEmpty = false;
+			T mVal;
+
+			template<typename... Args>
+			Entry(Args&&... args)
+				: mVal(std::forward<Args>(args)...)
+			{}
+		};
+
 		struct Block {
 
 			Block(u64 capacity)
@@ -36,18 +47,19 @@ namespace coproto
 			u64 mSizeMask;
 			u64 mBegin = 0, mEnd = 0;
 
-			u64 size() { return mEnd - mBegin; }
+			u64 occupied() { return mEnd - mBegin; }
+			u64 vacant() { return capacity() - occupied(); }
 			u64 capacity() { return mSizeMask + 1; }
-			T* data() { return (T*)(this + 1); }
-			T* begin() { return data() + (mBegin & mSizeMask); }
-			T* end() { return data() + (mEnd & mSizeMask); }
+			Entry* data() { return (Entry*)(this + 1); }
+			Entry* begin() { return data() + (mBegin & mSizeMask); }
+			Entry* end() { return data() + (mEnd & mSizeMask); }
 
-			T& front() { return *begin(); }
-			T& back() { return data()[(mEnd-1) & mSizeMask]; }
+			Entry& front() { return *begin(); }
+			Entry& back() { return data()[(mEnd - 1) & mSizeMask]; }
 
 		};
 
-		std::array<u8, sizeof(Block) + _DefaultCapacity * sizeof(T)> mInitalBuff;
+		std::array<u8, sizeof(Block) + _DefaultCapacity * sizeof(Entry)> mInitalBuff;
 		Block* mBegin = nullptr, * mEnd = nullptr;
 		u64 mSize = 0;
 
@@ -113,30 +125,44 @@ namespace coproto
 			return mEnd ? mEnd->capacity() : 0;
 		}
 
-		T& front()
+		Entry& front_entry()
 		{
 			COPROTO_ASSERT(mSize);
 			return *mBegin->begin();
 		}
 
+		T& front()
+		{
+			COPROTO_ASSERT(mSize);
+			return front_entry().mVal;
+		}
+
 		T& back()
 		{
 			COPROTO_ASSERT(mSize);
-			return mEnd->back();
+			return mEnd->back().mVal;
 		}
 
 		void pop_front()
 		{
-			front().~T();
+			front_entry().~Entry();
 			--mSize;
-			++mBegin->mBegin;
-			if (mBegin->size() == 0 && 
-				mBegin->mNext)
+			mBegin->begin()->mEmpty = true;
+
+			while (
+				mBegin->occupied() != 0 &&
+				mBegin->begin()->mEmpty)
 			{
-				auto n = mBegin->mNext;
-				if((u8*)mBegin != mInitalBuff.data())
-					delete[](u8*)mBegin;
-				mBegin = n;
+				++mBegin->mBegin;
+
+				if (mBegin->occupied() == 0 &&
+					mBegin->mNext)
+				{
+					auto n = mBegin->mNext;
+					if ((u8*)mBegin != mInitalBuff.data())
+						delete[](u8*)mBegin;
+					mBegin = n;
+				}
 			}
 		}
 
@@ -148,22 +174,22 @@ namespace coproto
 
 		void push_back(const T& t)
 		{
-			if (mEnd == nullptr || mEnd->size() == mEnd->capacity())
+			if (mEnd == nullptr || mEnd->vacant() == 0)
 				allocateBlock();
 
 			auto ptr = mEnd->end();
-			new (ptr) T(t);
+			new (ptr) Entry(t);
 			++mEnd->mEnd;
 			++mSize;
 		}
 
 		void push_back(T&& t)
 		{
-			if (mEnd == nullptr || mEnd->size() == mEnd->capacity())
+			if (mEnd == nullptr || mEnd->vacant() == 0)
 				allocateBlock();
 
 			auto ptr = mEnd->end();
-			new (ptr) T(std::forward<T>(t));
+			new (ptr) Entry(std::forward<T>(t));
 			++mEnd->mEnd;
 			++mSize;
 		}
@@ -171,12 +197,29 @@ namespace coproto
 		template<typename... Args>
 		void emplace_back(Args&&... args)
 		{
-			if (mEnd == nullptr || mEnd->size() == mEnd->capacity())
+			if (mEnd == nullptr || mEnd->vacant() == 0)
 				allocateBlock();
 			auto ptr = mEnd->end();
-			new (ptr) T(std::forward<Args>(args)...);
+			assert(ptr < mEnd->data() + mEnd->capacity());
+			new (ptr) Entry(std::forward<Args>(args)...);
 			++mEnd->mEnd;
 			++mSize;
+		}
+
+#define COPROTO_OFFSETOF(s,m) ((::size_t)&reinterpret_cast<char const volatile&>((((s*)0)->m)))
+
+		void erase(T* ptr)
+		{
+			assert(mSize);
+			if (&front() == ptr)
+				pop_front();
+			else
+			{
+				Entry& entry = *(Entry*)(((u8*)ptr) - COPROTO_OFFSETOF(Entry, mVal));
+				assert(entry.mEmpty == false);
+				--mSize;
+				entry.mEmpty = true;
+			}
 		}
 	};
 

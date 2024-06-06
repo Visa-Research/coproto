@@ -40,8 +40,9 @@
       "cacheVariables": {
         "CMAKE_BUILD_TYPE": "Debug",
         "COPROTO_FETCH_AUTO": "ON",
-        "COPROTO_ENABLE_BOOST": false,
+        "COPROTO_ENABLE_BOOST": true,
         "COPROTO_SOCK_LOGGING": true,
+        "COPROTO_ASAN": true,
         "COPROTO_CPP_VER": "20",
         "VERBOSE_FETCH": true,
         "CMAKE_INSTALL_PREFIX": "${sourceDir}/out/install/${presetName}"
@@ -69,7 +70,7 @@
         "COPROTO_FETCH_AUTO": "ON",
         "COPROTO_ENABLE_BOOST": false,
         "COPROTO_ENABLE_OPENSSL": false,
-        "COPROTO_CPP_VER": "14",
+        "COPROTO_CPP_VER": "20",
         "VERBOSE_FETCH": true,
         "CMAKE_INSTALL_PREFIX": "${sourceDir}/out/install/${presetName}"
       },
@@ -92,7 +93,7 @@
         "COPROTO_FETCH_AUTO": "ON",
         "COPROTO_ENABLE_BOOST": true,
         "COPROTO_ENABLE_OPENSSL": true,
-        "COPROTO_CPP_VER": "14",
+        "COPROTO_CPP_VER": "20",
         "VERBOSE_FETCH": true,
         "CMAKE_PREFIX_PATH": "/usr/local/opt/openssl",
         "CMAKE_INSTALL_PREFIX": "${sourceDir}/out/install/${presetName}"

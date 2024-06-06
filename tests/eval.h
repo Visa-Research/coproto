@@ -42,7 +42,8 @@ namespace coproto
 
 				auto w = macoro::when_all_ready(p0(s[0], 0, stx0), p1(s[1], 1, stx1));
 				auto r = macoro::sync_wait(std::move(w));
-
+				s[0].close();
+				s[1].close();
 				return r;
 			}
 			else
@@ -100,12 +101,13 @@ namespace coproto
 
 				std::array<BufferingSocket, 2> s;
 				
-				auto t0 = p0(s[0], 0) | macoro::make_eager();
-				auto t1 = p0(s[1], 1) | macoro::make_eager();
+				auto t0 = macoro::when_all_ready(
+					p0(s[0], 0), p0(s[1], 1))
+					| macoro::make_blocking();
 
 				BufferingSocket::exchangeMessages(s[0], s[1]);
 
-				auto r = macoro::sync_wait(macoro::when_all_ready(std::move(t0), std::move(t1)));
+				auto r = t0.get();
 
 				return r;
 			}

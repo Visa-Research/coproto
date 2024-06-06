@@ -12,6 +12,7 @@ namespace coproto
 {
 	namespace tests
 	{
+		void LocalAsyncSocket_noop_test();
 		void LocalAsyncSocket_sendRecv_test();
 		void LocalAsyncSocket_parSendRecv_test();
 		void LocalAsyncSocket_cancellation_test();
