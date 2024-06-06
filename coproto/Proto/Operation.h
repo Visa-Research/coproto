@@ -181,26 +181,7 @@ namespace coproto
 				:mExPtr(e)
 			{}
 
-			//struct Storage
-			//{
-			//	Storage(std::exception_ptr* e)
-			//		: mExPtr(e)
-			//	{}
-
-			//	virtual span<u8> asSpan() = 0;
-			//};
-
-			//InlinePoly<Storage, sizeof(u64) * 8> mStorage;
-			//span<u8> mData;
-
-			//template<typename S>
-			//SendBuffer(
-			//	std::exception_ptr* e,
-			//	S&& s
-			//)
-			//	: mStorage(std::forward<S>(s))
-			//	, mData(mStorage->asSpan())
-			//{ }
+			virtual ~SendBuffer() {}
 
 			void setError(error_code e) {
 

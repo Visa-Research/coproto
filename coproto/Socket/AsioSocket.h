@@ -22,7 +22,7 @@
 #include <vector>
 
 #ifndef NDEBUG
-	#define COPROTO_ASIO_LOG
+	//#define COPROTO_ASIO_LOG
 	#define COPROTO_ASIO_DEBUG
 #endif
 
@@ -655,8 +655,10 @@ namespace coproto
 
 			void log(std::string s)
 			{
+#ifdef COPROTO_ASIO_LOG
 				std::lock_guard<std::mutex> l(::coproto::ggMtx);
 				ggLog.push_back("accept::" + s);
+#endif
 			}
 
 			AsioAcceptor& mAcceptor;
@@ -829,8 +831,10 @@ namespace coproto
 
 		void log(std::string s)
 		{
+#ifdef COPROTO_ASIO_LOG
 			std::lock_guard<std::mutex> l(::coproto::ggMtx);
 			ggLog.push_back("connect::" + s);
+#endif
 		}
 
 		AsioConnect(
