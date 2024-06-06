@@ -8,12 +8,14 @@
       "generator": "Ninja",
       "binaryDir": "${sourceDir}/out/build/${presetName}",
       "cacheVariables": {
-        "CMAKE_BUILD_TYPE": "Debug",
+        "CMAKE_BUILD_TYPE": "RelWithDebInfo",
+        "COPROTO_ASAN": "ON",
         "COPROTO_FETCH_AUTO": "ON",
         "COPROTO_ENABLE_BOOST": "ON",
         "COPROTO_ENABLE_OPENSSL": false,
         "COPROTO_CPP_VER": "20",
         "VERBOSE_FETCH": true,
+        "MACORO_GIT_TAG": null,
         "CMAKE_INSTALL_PREFIX": "${sourceDir}/out/install/${presetName}"
       },
       "vendor": {
@@ -23,7 +25,11 @@
           ]
         },
         "microsoft.com/VisualStudioRemoteSettings/CMake/1.0": {
-          "sourceDir": "$env{HOME}/.vs/$ms{projectDirName}"
+          "sourceDir": "$env{HOME}/.vs/$ms{projectDirName}",
+          "copySourcesOptions": {
+            "exclusionList": [ ".vs", "out/build", "out/install", "out/boost*" ]
+          },
+          "rsyncCommandArgs": [ "-t", "--delete", "--include=${sourceDir}/out/macoro/*", "--verbose" ]
         }
       }
     },
@@ -68,8 +74,8 @@
       "cacheVariables": {
         "CMAKE_BUILD_TYPE": "RelWithDebInfo",
         "COPROTO_FETCH_AUTO": "ON",
-        "COPROTO_ENABLE_BOOST": false,
-        "COPROTO_ENABLE_OPENSSL": false,
+        "COPROTO_ENABLE_BOOST": true,
+        "COPROTO_ENABLE_OPENSSL": true,
         "COPROTO_CPP_VER": "20",
         "VERBOSE_FETCH": true,
         "CMAKE_INSTALL_PREFIX": "${sourceDir}/out/install/${presetName}"

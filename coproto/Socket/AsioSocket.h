@@ -22,9 +22,9 @@
 #include <vector>
 
 #ifndef NDEBUG
-	//#define COPROTO_ASIO_LOG
-	#define COPROTO_ASIO_DEBUG
+	#define COPROTO_ASIO_LOG
 #endif
+	#define COPROTO_ASIO_DEBUG
 
 namespace coproto
 {

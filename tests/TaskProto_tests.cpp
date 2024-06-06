@@ -243,13 +243,13 @@ namespace coproto
 						//std::cout << " p1 sent " << i << " ok" << std::endl;
 
 						////std::cout << " p1 recv " << i << std::endl;
-						//auto r = co_await(sock.recv<std::string>() | macoro::wrap());
-						////std::cout << " p1 recv " << i << " ok " << std::endl;
+						auto r = co_await(sock.recv<std::string>() | macoro::wrap());
+						//std::cout << " p1 recv " << i << " ok " << std::endl;
 
-						//if (r.has_error())
-						//	throw std::runtime_error(COPROTO_LOCATION);
+						if (r.has_error())
+							throw std::runtime_error(COPROTO_LOCATION);
 
-						//str = r.value();
+						str = r.value();
 
 						if (str != "hello from " + std::to_string(i * 2 + 1))
 							throw std::runtime_error(COPROTO_LOCATION);
