@@ -481,7 +481,7 @@ namespace coproto
 
 					if (party)
 					{
-						s.close();
+						MC_AWAIT(s.close());
 					}
 					else
 					{
@@ -489,7 +489,7 @@ namespace coproto
 						MC_AWAIT_SET(c, s.recv<char>() | macoro::wrap());
 
 						if (c.has_error())
-							s.close();
+							MC_AWAIT(s.close());
 					}
 
 					MC_END();
@@ -1015,6 +1015,7 @@ namespace coproto
 					, buff = std::vector<u64>(10)
 					, fus = std::vector<macoro::eager_task<macoro::result<int>>>{}
 					, rs = std::vector<macoro::result<int>>{}
+					, r = macoro::result<void>{}
 					, tt = task<macoro::result<int>>{}
 					, i = u64{}
 				);
@@ -1025,8 +1026,12 @@ namespace coproto
 				{
 					name = std::string("p1");
 					//co_await Name(name);
-					MC_AWAIT(s.recv(buff));
-					//co_await EndOfRound();
+
+					MC_AWAIT_SET(r, s.recv(buff) | macoro::wrap());
+					if (r.has_error())
+						MC_AWAIT(s.close());
+					r.value();
+
 
 					fus.emplace_back(
 					task14_echoServer(s.fork(), n, 5, rep, name+".0", print)
@@ -1043,12 +1048,20 @@ namespace coproto
 						MC_AWAIT_FN(rs.emplace_back, fus[i]);
 
 					for (i = 0; i < rs.size(); ++i)
+					{
+						if (rs[i].has_error() && !s.closed()) 
+							MC_AWAIT(s.close());
+
 						rs[i].value();
+					}
 				}
 				else
 				{
 					name = std::string("p0");
-					MC_AWAIT(s.send(buff));
+					MC_AWAIT_SET(r, s.send(buff) | macoro::wrap());
+					if (r.has_error())
+						MC_AWAIT(s.close());
+					r.value();
 
 					fus.emplace_back(
 						task14_echoClient(s.fork(), n, 5, rep, name + ".0", print)
@@ -1063,7 +1076,12 @@ namespace coproto
 						MC_AWAIT_FN(rs.emplace_back, fus[i]);
 
 					for (i = 0; i < rs.size(); ++i)
+					{
+						if (rs[i].has_error() && !s.closed())
+							MC_AWAIT(s.close());
+
 						rs[i].value();
+					}
 				}
 
 				MC_END();

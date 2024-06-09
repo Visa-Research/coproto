@@ -22,8 +22,8 @@
 #include <vector>
 
 #ifndef NDEBUG
-	#define COPROTO_ASIO_LOG
 #endif
+	#define COPROTO_ASIO_LOG
 	#define COPROTO_ASIO_DEBUG
 
 namespace coproto
@@ -353,7 +353,41 @@ namespace coproto
 				}
 #endif
 
-				void close();
+				MACORO_NODISCARD
+				auto close()
+				{
+					struct Awaiter
+					{
+						std::shared_ptr<State> mState;
+
+						bool await_ready() const noexcept { return false; }
+						void await_suspend(std::coroutine_handle<> h) noexcept
+						{
+
+							boost::asio::dispatch(mState->mSock_.get_executor(),
+								[s = mState,
+								lt = mState->mOpCount.lockPtr(),
+								h
+								]()mutable {
+
+#ifdef COPROTO_ASIO_LOG
+									s->log("close ");
+#endif
+
+									s->mSock_.lowest_layer().close();
+
+									lt.reset();
+									h.resume();
+
+								});
+						}
+						void await_resume() const noexcept {}
+					};
+
+					return Awaiter{ mState };
+
+				}
+
 
 				Awaiter send(span<u8> data, macoro::stop_token token = {}) { return Awaiter(this, data, true, std::move(token)); };
 				Awaiter recv(span<u8> data, macoro::stop_token token = {}) { return Awaiter(this, data, false, std::move(token)); };
@@ -376,12 +410,6 @@ namespace coproto
 		};
 
 
-
-		template<typename SocketType>
-		inline void AsioSocket<SocketType>::Sock::close()
-		{
-			mState->mSock_.lowest_layer().close();
-		}
 
 
 

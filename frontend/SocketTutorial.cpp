@@ -60,11 +60,11 @@ namespace {
 	//       It is suggested that this always returns false. Return true if the operation 
 	//       has somehow already completed and await_suspend should not be called.
 	// 
-	//     * macoro::coroutine_handle<> SendAwaiter::await_suspend(macoro::coroutine_handle<> h) 
+	//     * std::coroutine_handle<> SendAwaiter::await_suspend(std::coroutine_handle<> h) 
 	//       
 	//       We suggest in this function you start the async send. If the send completes 
 	//       immediately/synchronously, then await_suspend should return h. Otherwise, await_suspend
-	//       should somehow store h and return macoro::noop_coroutine(). When the send
+	//       should somehow store h and return std::noop_coroutine(). When the send
 	//       completes asynchronously, call h.resume().
 	// 
 	//		 If the provided token::stop_possible() returns true, a fully conformant implementation
@@ -84,10 +84,19 @@ namespace {
 	// 
 	//   This is basically the same as send(...) but should receive data.
 	//
-	// * void MySocketType::close()
+	// * void MySocketType::close() or CloseAwaiter MySocketType::close()
 	//   
 	//   Cancel any outstanding operations. This function might be called more than once.
+	//   It should either return void or a awaitable type. In particular, the methods
 	// 
+	//		* CloseAwaiter::await_ready() -> bool
+	//		* CloseAwaiter::await_suspend(std::coroutine_handle<> h) -> { std::coroutine_handle<>, void }
+	//		* CloseAwaiter::await_resume() -> void
+	// 
+	// should exists. await_ready can always return false. await_suspend should return h
+	// if close is completed synchronously. Otherwise, store h, return std::noop_coroutine() or void
+	// and call h.resume() once completed. await_resume() need not do anything and will be called
+	// from h.resume().
 	// 
 	// A coproto::Socket can be constructed from MySocketType as follows
 	// 

@@ -226,6 +226,9 @@ namespace coproto
 
 				// a mutex that the constructor should provide.
 				std::recursive_mutex* mMtx = nullptr;
+
+
+
 			};
 
 			std::shared_ptr<State> mState;
@@ -373,7 +376,7 @@ namespace coproto
 
 			Handle acquire(std::unique_lock<std::recursive_mutex>& l)
 			{
-				assert(mState->mMtx == l.mutex());
+				assert(mState->mMtx == nullptr || mState->mMtx == l.mutex());
 				return Handle(mState, l);
 			}
 

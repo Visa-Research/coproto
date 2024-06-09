@@ -327,7 +327,7 @@ namespace {
             if (doThrow)
             {
                 std::cout << "errorServer throwing at " << i << std::endl;
-                sock.close();
+                co_await sock.close();
                 throw std::runtime_error("doThrow");
             }
 

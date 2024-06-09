@@ -397,7 +397,7 @@ namespace {
             if (doThrow)
             {
                 std::cout << "errorServer throwing at " << i << std::endl;
-                sock.close();
+                MC_AWAIT(sock.close());
                 throw std::runtime_error("doThrow");
             }
 
@@ -471,7 +471,7 @@ namespace {
             if (doThrow)
             {
                 std::cout << "errorServer throwing at " << i << std::endl;
-                sock.close();
+                MC_AWAIT(sock.close());
                 throw std::runtime_error("doThrow");
             }
 

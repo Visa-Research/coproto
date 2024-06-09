@@ -389,20 +389,32 @@ namespace coproto
 			}
 		}
 
+		//static thread_local 
+	//#define MACORO_TRY std::exception_ptr macoro_ePtr; try
+	//#define MACORO_CATCH(NAME)  catch(...) { macoro_ePtr = std::current_exception(); } if(auto NAME = std::exchange(macoro_ePtr, nullptr))  
+
 		void task_badRecvSize_Test()
 		{
 			auto proto = [](Socket& s, bool party) -> task<void> {
 
-				std::vector<u64> buff(3);
+				MACORO_TRY{
 
-				if (party)
-				{
-					co_await s.send(buff);
+					std::vector<u64> buff(3);
+
+					if (party)
+					{
+						co_await s.send(buff);
+					}
+					else
+					{
+						buff.resize(1);
+						co_await s.recv(buff);
+					}
 				}
-				else
+					MACORO_CATCH(ePtr)
 				{
-					buff.resize(1);
-					co_await s.recv(buff);
+					if (!s.closed()) co_await s.close();
+					std::rethrow_exception(ePtr);
 				}
 				};
 
@@ -412,7 +424,10 @@ namespace coproto
 				auto r = eval(proto, t);
 
 
-				try { std::get<0>(r).result(); throw std::runtime_error(""); }
+				try {
+					std::get<0>(r).result();
+					throw std::runtime_error(COPROTO_LOCATION);
+				}
 				catch (BadReceiveBufferSize& b) {
 					if (b.mBufferSize != 8 || b.mReceivedSize != 24)
 						throw;
@@ -421,7 +436,7 @@ namespace coproto
 					std::get<1>(r).result();
 
 					if (t != EvalTypes::Buffering)
-						throw std::runtime_error("");
+						throw std::runtime_error(COPROTO_LOCATION);
 				}
 				catch (std::system_error& e)
 				{
@@ -557,20 +572,25 @@ namespace coproto
 
 			auto proto = [](Socket& s, bool party) -> task<void>
 				{
-					try {
+					bool throws = false;
+					MACORO_TRY{
 
 						if (party)
-							throw std::runtime_error("");
+							throw std::runtime_error(COPROTO_LOCATION);
 						else
 						{
-							//throw std::runtime_error("");
 							char c = co_await s.recv<char>();
 						}
 					}
-					catch (...)
+						MACORO_CATCH(exPtr)
 					{
-						s.close();
+						throws = true;
+						co_await s.close();
 					}
+
+					if (!throws)
+						throw std::runtime_error(COPROTO_LOCATION);
+
 					co_return;
 				};
 
@@ -664,82 +684,82 @@ namespace coproto
 		}
 		task<int> task_echoClient(Socket ss, u64 idx, u64 length, u64 rep, std::string name, bool v)
 		{
-//			try {
+			//			try {
 
 #ifdef COPROTO_LOGGING
-				auto np = name + "_client_" + std::to_string(idx) + "_" + std::to_string(length);
-				co_await Name(np);
+			auto np = name + "_client_" + std::to_string(idx) + "_" + std::to_string(length);
+			co_await Name(np);
 #endif
-				if (v) {
-					std::lock_guard<std::mutex> lock(gPrntMtx);
-					std::cout << name << " c start " << idx << " " << length << std::endl;
-				}
-				auto msg = std::vector<char>(length);
-				std::iota(msg.begin(), msg.end(), 0);
-				if (v) {
-					std::lock_guard<std::mutex> lock(gPrntMtx);
-					std::cout << name << " c send " << idx << " " << length << std::endl;
-				}
-				for (u64 i = 0; i < rep; ++i)
-				{
-					auto s = ss.send(msg);
+			if (v) {
+				std::lock_guard<std::mutex> lock(gPrntMtx);
+				std::cout << name << " c start " << idx << " " << length << std::endl;
+			}
+			auto msg = std::vector<char>(length);
+			std::iota(msg.begin(), msg.end(), 0);
+			if (v) {
+				std::lock_guard<std::mutex> lock(gPrntMtx);
+				std::cout << name << " c send " << idx << " " << length << std::endl;
+			}
+			for (u64 i = 0; i < rep; ++i)
+			{
+				auto s = ss.send(msg);
 #ifdef COPROTO_LOGGING
-					s.setName(np + "_s" + std::to_string(i));
+				s.setName(np + "_s" + std::to_string(i));
 #endif
-					co_await std::move(s);
-				}
+				co_await std::move(s);
+			}
 
-				if (v) {
-					std::lock_guard<std::mutex> lock(gPrntMtx);
-					std::cout << name << " c send " << idx << " " << length << " done" << std::endl;
-				}
-				//co_await EndOfRound();
+			if (v) {
+				std::lock_guard<std::mutex> lock(gPrntMtx);
+				std::cout << name << " c send " << idx << " " << length << " done" << std::endl;
+			}
+			//co_await EndOfRound();
 
-				if (v) {
-					std::lock_guard<std::mutex> lock(gPrntMtx);
-					std::cout << name << " c EOR " << idx << " " << length << " " << std::endl;
-					std::cout << name << " c recv " << idx << " " << length << " begin" << std::endl;
-				}
-				for (u64 i = 0; i < rep; ++i)
-				{
+			if (v) {
+				std::lock_guard<std::mutex> lock(gPrntMtx);
+				std::cout << name << " c EOR " << idx << " " << length << " " << std::endl;
+				std::cout << name << " c recv " << idx << " " << length << " begin" << std::endl;
+			}
+			for (u64 i = 0; i < rep; ++i)
+			{
 
-					auto r = ss.recv<std::vector<char>>();
+				auto r = ss.recv<std::vector<char>>();
 #ifdef COPROTO_LOGGING
-					r.setName(np + "_r" + std::to_string(i));
+				r.setName(np + "_r" + std::to_string(i));
 #endif
-					std::vector<char> msg2;
-					msg2 = co_await std::move(r);
-					//auto msg2 = co_await recv<std::vector<char>>();
-					if (msg2 != msg)
-					{
-						std::lock_guard<std::mutex> lock(gPrntMtx);
-						std::cout << "bad msg " << COPROTO_LOCATION << std::endl;
-						throw std::runtime_error(COPROTO_LOCATION);
-					}
+				std::vector<char> msg2;
+				msg2 = co_await std::move(r);
+				//auto msg2 = co_await recv<std::vector<char>>();
+				if (msg2 != msg)
+				{
+					std::lock_guard<std::mutex> lock(gPrntMtx);
+					std::cout << "bad msg " << COPROTO_LOCATION << std::endl;
+					throw std::runtime_error(COPROTO_LOCATION);
 				}
+			}
+			if (v) {
+				std::lock_guard<std::mutex> lock(gPrntMtx);
+				std::cout << name << " c recv " << idx << " " << length << " done" << std::endl;
+			}
+			if (idx)
+			{
+				co_return co_await task_echoClient(ss, idx - 1, length, rep, name, v);
+			}
+			else
+			{
+
 				if (v) {
 					std::lock_guard<std::mutex> lock(gPrntMtx);
-					std::cout << name << " c recv " << idx << " " << length << " done" << std::endl;
+					std::cout << name << " ###################### c done " << idx << " " << length << std::endl;
 				}
-				if (idx)
-				{
-					co_return co_await task_echoClient(ss, idx - 1, length, rep, name, v);
-				}
-				else
-				{
-
-					if (v) {
-						std::lock_guard<std::mutex> lock(gPrntMtx);
-						std::cout << name << " ###################### c done " << idx << " " << length << std::endl;
-					}
-					co_return 0;
-				}
-//			}
-//			catch (std::exception& e)
-//			{
-//				//std::cout << "exp "<< e.what() << std::endl;
-//				throw;
-//			}
+				co_return 0;
+			}
+			//			}
+			//			catch (std::exception& e)
+			//			{
+			//				//std::cout << "exp "<< e.what() << std::endl;
+			//				throw;
+			//			}
 		}
 
 
@@ -1082,57 +1102,63 @@ namespace coproto
 			u64 n = 1;
 			u64 rep = 1;
 			auto proto = [n, print, rep](Socket& s, bool party, macoro::thread_pool& ex) -> task<void> {
+				MACORO_TRY{
+					co_await macoro::transfer_to(ex);
 
-				co_await macoro::transfer_to(ex);
-
-				if (party)
-				{
-					auto name = std::string("p1");
-					//co_await Name(name);
-					std::vector<u64> buff(10);
+					if (party)
+					{
+						auto name = std::string("p1");
+						//co_await Name(name);
+						std::vector<u64> buff(10);
 
 
 
-					co_await s.recv(buff);
-					//co_await EndOfRound();
+						co_await s.recv(buff);
+						//co_await EndOfRound();
 
-					auto fu0 = task_echoServer(s.fork(), n, 5, rep, name, print) | macoro::start_on(ex) | macoro::wrap();
-					auto fu1 = task_echoServer(s.fork(), n + 2, 6, rep, name, print) | macoro::wrap() | macoro::start_on(ex);
-					auto fu2 = task_echoServer(s.fork(), n, 7, rep, name, print) | macoro::wrap() | macoro::start_on(ex);
+						auto fu0 = task_echoServer(s.fork(), n, 5, rep, name, print) | macoro::start_on(ex) | macoro::wrap();
+						auto fu1 = task_echoServer(s.fork(), n + 2, 6, rep, name, print) | macoro::wrap() | macoro::start_on(ex);
+						auto fu2 = task_echoServer(s.fork(), n, 7, rep, name, print) | macoro::wrap() | macoro::start_on(ex);
 
-					auto r = co_await(task_echoClient(s, n, 10, rep, name, print) | macoro::wrap());
-					//co_await send(buff);
-					auto r0 = co_await std::move(fu0);
-					auto r1 = co_await std::move(fu1);
-					auto r2 = co_await std::move(fu2);
+						auto r = co_await(task_echoClient(s, n, 10, rep, name, print) | macoro::wrap());
+						//co_await send(buff);
+						auto r0 = co_await std::move(fu0);
+						auto r1 = co_await std::move(fu1);
+						auto r2 = co_await std::move(fu2);
 
-					r.value();
-					r0.value();
-					r1.value();
-					r2.value();
+						r.value();
+						r0.value();
+						r1.value();
+						r2.value();
+					}
+					else
+					{
+						auto name = std::string("p0");
+						//co_await Name(name);
+						std::vector<u64> buff(10);
+						co_await s.send(buff);
+						//co_await recv(buff);
+
+						auto fu0 = task_echoClient(s.fork(), n, 5, rep, name, print) | macoro::wrap() | macoro::start_on(ex);
+						auto fu1 = task_echoClient(s.fork(), n + 2, 6, rep, name, print) | macoro::wrap() | macoro::start_on(ex);
+						auto fu2 = task_echoClient(s.fork(), n, 7, rep, name, print) | macoro::wrap() | macoro::start_on(ex);
+						auto r = co_await(task_echoServer(s, n, 10, rep, name, print) | macoro::wrap());
+						//co_await recv(buff);
+
+						auto r0 = co_await std::move(fu0);
+						auto r1 = co_await std::move(fu1);
+						auto r2 = co_await std::move(fu2);
+
+						r.value();
+						r0.value();
+						r1.value();
+						r2.value();
+					}
 				}
-				else
+					MACORO_CATCH(exPtr)
 				{
-					auto name = std::string("p0");
-					//co_await Name(name);
-					std::vector<u64> buff(10);
-					co_await s.send(buff);
-					//co_await recv(buff);
-
-					auto fu0 = task_echoClient(s.fork(), n, 5, rep, name, print) | macoro::wrap() | macoro::start_on(ex);
-					auto fu1 = task_echoClient(s.fork(), n + 2, 6, rep, name, print) | macoro::wrap() | macoro::start_on(ex);
-					auto fu2 = task_echoClient(s.fork(), n, 7, rep, name, print) | macoro::wrap() | macoro::start_on(ex);
-					auto r = co_await(task_echoServer(s, n, 10, rep, name, print) | macoro::wrap());
-					//co_await recv(buff);
-
-					auto r0 = co_await std::move(fu0);
-					auto r1 = co_await std::move(fu1);
-					auto r2 = co_await std::move(fu2);
-
-					r.value();
-					r0.value();
-					r1.value();
-					r2.value();
+					co_await s.close();
+					std::rethrow_exception(exPtr);
 				}
 				};
 #ifdef MULTI 
@@ -1306,7 +1332,7 @@ namespace coproto
 			auto proto = [&](Socket s, bool party) -> task<void>
 				{
 					int i;
-					if(party)
+					if (party)
 						co_await s.recv(i);
 					else
 						co_await s.send(i);
@@ -1316,7 +1342,7 @@ namespace coproto
 			for (auto t : types)
 			{
 				auto socks = LocalAsyncSocket::makePair();
-				auto b = macoro::sync_wait( macoro::when_all_ready(proto(std::move(socks[0]),0), proto(std::move(socks[1]), 1)));
+				auto b = macoro::sync_wait(macoro::when_all_ready(proto(std::move(socks[0]), 0), proto(std::move(socks[1]), 1)));
 				std::get<0>(b).result();
 				std::get<1>(b).result();
 			}

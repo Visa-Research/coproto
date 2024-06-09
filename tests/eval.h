@@ -42,8 +42,8 @@ namespace coproto
 
 				auto w = macoro::when_all_ready(p0(s[0], 0, stx0), p1(s[1], 1, stx1));
 				auto r = macoro::sync_wait(std::move(w));
-				s[0].close();
-				s[1].close();
+				macoro::sync_wait(s[0].close());
+				macoro::sync_wait(s[1].close());
 				return r;
 			}
 			else
@@ -92,7 +92,19 @@ namespace coproto
 			if (type == EvalTypes::async)
 			{
 				auto s = LocalAsyncSocket::makePair();
-				auto w = macoro::when_all_ready(p0(s[0], 0), p1(s[1], 1));
+				auto w = macoro::when_all_ready(
+					[&]()->task<> {
+						auto ec = co_await(p0(s[0], 0) | macoro::wrap());
+						co_await s[0].flush();
+						co_await s[0].close();
+						ec.value();
+					}(),
+					[&]()->task<> {
+						auto ec = co_await(p1(s[1], 1) | macoro::wrap());
+						co_await s[1].flush();
+						co_await s[1].close();
+						ec.value();
+					}());
 				auto r = macoro::sync_wait(std::move(w));
 				return r;
 			}
@@ -100,7 +112,7 @@ namespace coproto
 			{
 
 				std::array<BufferingSocket, 2> s;
-				
+
 				auto t0 = macoro::when_all_ready(
 					p0(s[0], 0), p0(s[1], 1))
 					| macoro::make_blocking();

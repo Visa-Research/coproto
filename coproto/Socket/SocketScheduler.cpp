@@ -173,7 +173,7 @@ namespace coproto {
 			return macoro::noop_coroutine();
 		}
 
-		void SockScheduler::close(
+		void SockScheduler::cancel(
 			ExecutionQueue::Handle& queue,
 			Caller c,
 			error_code ec,
@@ -183,29 +183,34 @@ namespace coproto {
 			if (!mEC)
 			{
 				COPROTO_ASSERT(ec);
-				COPROTO_ASSERT(mCloseSock);
 				mEC = ec;
-				queue.push_back_fn([f = std::move(mCloseSock)]() mutable {
-					f();
-					}, l);
-			}
+				if (mRecvStatus == Status::InUse)
+					mRecvCancelSrc.request_stop();
+				if (mSendStatus == Status::InUse)
+					mSendCancelSrc.request_stop();
+				//COPROTO_ASSERT(mCloseSock);
 
-			if (mAnyRecvOp)
-			{
-				queue.push_back(mAnyRecvOp->getHandle(code::cancel, mAnyRecvOp), {}, l);
-			}
+				//queue.push_back_fn([f = std::move(mCloseSock)]() mutable {
+				//	f();
+				//	}, l);
 
-			if (mGetRequestedRecvSocketFork)
-			{
-				auto e = (c == Caller::Sender) ?
-					error_code(code::cancel) :
-					std::exchange(ec, code::cancel);
-				queue.push_back(mGetRequestedRecvSocketFork->getHandle(macoro::Err(e), mGetRequestedRecvSocketFork), {}, l);
-			}
+				if (mAnyRecvOp)
+				{
+					queue.push_back(mAnyRecvOp->getHandle(code::cancel, mAnyRecvOp), {}, l);
+				}
 
-			if (mNextSendOp)
-			{
-				queue.push_back(mNextSendOp->getHandle(macoro::Err(error_code(code::cancel)), mNextSendOp), {}, l);
+				if (mGetRequestedRecvSocketFork)
+				{
+					auto e = (c == Caller::Sender) ?
+						error_code(code::cancel) :
+						std::exchange(ec, code::cancel);
+					queue.push_back(mGetRequestedRecvSocketFork->getHandle(macoro::Err(e), mGetRequestedRecvSocketFork), {}, l);
+				}
+
+				if (mNextSendOp)
+				{
+					queue.push_back(mNextSendOp->getHandle(macoro::Err(error_code(code::cancel)), mNextSendOp), {}, l);
+				}
 			}
 
 			if (c == Caller::Sender)
@@ -262,7 +267,7 @@ namespace coproto {
 				Lock l(mMutex);
 				queue = mExQueue.acquire(l);
 
-				close(queue, Caller::Extern, code::closed, l);
+				cancel(queue, Caller::Extern, code::closed, l);
 			}
 
 			queue.run();

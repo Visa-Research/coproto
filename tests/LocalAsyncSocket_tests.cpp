@@ -283,7 +283,7 @@ void coproto::tests::LocalAsyncSocket_close_test()
 			fut.get();
 			{
 				if (tt % 4 == idx)
-					s[0].close();
+					MC_AWAIT(s[0].close());
 
 				if (idx == 0) {
 					MC_AWAIT_SET(r, s[0].mSock->recv(buffer));

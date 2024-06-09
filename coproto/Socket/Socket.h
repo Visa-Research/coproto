@@ -66,11 +66,11 @@ namespace coproto
 	//       It is suggested that this always returns false. Return true if the operation 
 	//       has somehow already completed and await_suspend should not be called.
 	// 
-	//     * macoro::coroutine_handle<> SendAwaiter::await_suspend(macoro::coroutine_handle<> h) 
+	//     * std::coroutine_handle<> SendAwaiter::await_suspend(std::coroutine_handle<> h) 
 	//       
 	//       We suggest in this function you start the async send. If the send completes 
 	//       immediately/synchronously, then await_suspend should return h. Otherwise, await_suspend
-	//       should somehow store h and return macoro::noop_coroutine(). When the send
+	//       should somehow store h and return std::noop_coroutine(). When the send
 	//       completes asynchronously, call h.resume().
 	// 
 	//     * std::pair<error_code, u64> SendAwaiter::await_resume()
@@ -216,11 +216,18 @@ namespace coproto
 			return mImpl->mBytesReceived;
 		}
 
-		// Cancel all operations that are currently being performed.
-		// Future operations will complete an error.
-		void close()
+		// returns true if close() has been called.
+		bool closed()
 		{
-			mImpl->close();
+			return mImpl->mClosed;
+		}
+
+		// Cancel all operations that are currently being performed.
+		// Future operations will complete an error. The result must be awaited.
+		[[nodiscard]]
+		internal::CloseAwaiter close()
+		{
+			return { mImpl->mCloseSock.get()};
 		}
 
 

@@ -44,6 +44,191 @@ namespace coproto
 
 	namespace internal
 	{
+
+		struct SockScheduler;
+
+
+		// the message header encoding the size and fork id.
+		struct Header
+		{
+			// the size in bytes of the message to be send next.
+			u32 mSize;
+
+			// the fork id of the sending party.
+			u32 mForkId;
+		};
+
+		// a struct meant to encode various meta data.
+		// right now the only thing its is used for is
+		// sending the SessionId -> remoteID mapping.
+		struct ControlBlock
+		{
+			// the data to be sent.
+			std::array<u8, 16> data;
+			enum class Type : u8
+			{
+				NewSocketFork = 1
+			};
+
+			Type getType() { return Type::NewSocketFork; }
+			SessionID getSessionID() {
+				SessionID ret;
+				std::memcpy(ret.mVal, data.data(), 16);
+				return ret;
+			}
+
+			void setType(Type t) {};
+			void setSessionID(const SessionID& id) {
+				std::memcpy(data.data(), id.mVal, 16);
+			}
+		};
+
+
+		// an awaiter used to get tne next message to be sent.
+		struct NextSendOp
+		{
+			NextSendOp(
+				SendOperation* prevOp,
+				error_code prevEc,
+				SockScheduler& ss)
+				: mPrevOp(prevOp)
+				, mPrevEc(prevEc)
+				, mSched(ss) {}
+
+		private:
+			SendOperation* mPrevOp;
+			error_code mPrevEc;
+			SockScheduler& mSched;
+			std::coroutine_handle<> mHandle;
+			macoro::result<SendOperation*, macoro::error_code> mRes;
+
+		public:
+
+			std::coroutine_handle<> getHandle(
+				macoro::result<SendOperation*, macoro::error_code> r,
+				NextSendOp*& self);
+
+			void completePrev(Lock& lock, ExecutionQueue::Handle& queue);
+
+			bool await_ready();
+
+			std::coroutine_handle<> await_suspend(std::coroutine_handle<> h);
+
+			macoro::result<SendOperation*, macoro::error_code> await_resume();
+		};
+
+
+		struct GetRequestedRecvSocketFork
+		{
+			GetRequestedRecvSocketFork(SockScheduler& ss, u32 remoteForkId)
+				: mSched(ss)
+				, mRemoteForkId(remoteForkId)
+			{}
+		private:
+			macoro::result<RecvOperation*, std::error_code> mRes;
+			SockScheduler& mSched;
+			u32 mRemoteForkId;
+			std::coroutine_handle<> mHandle;
+
+		public:
+
+			u32 forkID()
+			{
+				return mRemoteForkId;
+			}
+
+			std::coroutine_handle<> getHandle(
+				macoro::result<RecvOperation*, std::error_code> r,
+				GetRequestedRecvSocketFork*& self);
+
+			bool await_ready() noexcept;
+
+			std::coroutine_handle<> await_suspend(std::coroutine_handle<> h) noexcept;
+
+			macoro::result<RecvOperation*, std::error_code> await_resume();
+		};
+
+
+		// an awaiter used to wait until we have a requested
+		// receive operation.
+		struct AnyRecvOp
+		{
+			AnyRecvOp(
+				RecvOperation* prevOp,
+				error_code prevEc,
+				SockScheduler& ss)
+				: mPrevOp(prevOp)
+				, mPrevEc(prevEc)
+				, mSched(ss) {}
+
+		private:
+			RecvOperation* mPrevOp;
+			error_code mPrevEc;
+			std::optional<error_code> mRes;
+			SockScheduler& mSched;
+			std::coroutine_handle<> mHandle;
+
+
+		public:
+
+			std::coroutine_handle<> getHandle(error_code r, AnyRecvOp*& self);
+
+			bool await_ready();
+
+			void completePrev(Lock& lock, ExecutionQueue::Handle& queue);
+
+			std::coroutine_handle<> await_suspend(std::coroutine_handle<>h);
+			error_code await_resume();
+		};
+
+
+		struct CloseAwaiter
+		{
+			struct CloseAwaiterBase
+			{
+				virtual ~CloseAwaiterBase() {}
+				bool await_ready() { return false; }
+				virtual std::coroutine_handle<> await_suspend(std::coroutine_handle<> h) = 0;
+				virtual void await_resume() = 0;
+			};
+
+			template<typename Socket> struct CloseAwaiterImpl : CloseAwaiterBase
+			{
+				~CloseAwaiterImpl() {}
+
+				CloseAwaiterImpl(SockScheduler* sched, Socket* sock)
+					: mSched(sched)
+					, mSock(sock) {}
+
+				SockScheduler* mSched;
+				Socket* mSock;
+				using close_res = std::invoke_result_t<decltype(&Socket::close), Socket>;
+				using Awaiter = std::conditional_t<std::is_void_v<close_res>, int , macoro::remove_rvalue_reference_t<close_res>>;
+				std::optional<Awaiter> mAwaiter;
+
+
+				std::coroutine_handle<> await_suspend(std::coroutine_handle<> h) override;
+
+				void await_resume() override;
+			};
+
+			~CloseAwaiter()
+			{
+				if (mPtr)
+				{
+					std::cout << "coproto::Socket::close() must be awaited if called. Terminate is being called" << std::endl;
+					std::terminate();
+				}
+			}
+
+			CloseAwaiterBase* mPtr;
+
+			bool await_ready() { return mPtr->await_ready(); }
+			std::coroutine_handle<> await_suspend(std::coroutine_handle<> h) { return mPtr->await_suspend(h); }
+			void await_resume() { return std::exchange(mPtr, nullptr)->await_resume(); }
+		};
+
+
 		// This class handles the logic with managing what message to
 		// send and what fork/slot it corresponds to. Recall that we support running
 		// multiple (semi) independent protocols on a single underlaying socket.
@@ -107,42 +292,6 @@ namespace coproto
 		struct SockScheduler
 		{
 
-			// the message header encoding the size and fork id.
-			struct Header
-			{
-				// the size in bytes of the message to be send next.
-				u32 mSize;
-
-				// the fork id of the sending party.
-				u32 mForkId;
-			};
-
-			// a struct meant to encode various meta data.
-			// right now the only thing its is used for is
-			// sending the SessionId -> remoteID mapping.
-			struct ControlBlock
-			{
-				// the data to be sent.
-				std::array<u8, 16> data;
-				enum class Type : u8
-				{
-					NewSocketFork = 1
-				};
-
-				Type getType() { return Type::NewSocketFork; }
-				SessionID getSessionID() {
-					SessionID ret;
-					std::memcpy(ret.mVal, data.data(), 16);
-					return ret;
-				}
-
-				void setType(Type t) {};
-				void setSessionID(const SessionID& id) {
-					std::memcpy(data.data(), id.mVal, 16);
-				}
-			};
-
-
 			// the status of the send and receive sockets.
 			enum class Status
 			{
@@ -152,103 +301,7 @@ namespace coproto
 				Closed
 			};
 
-			// an awaiter used to get tne next message to be sent.
-			struct NextSendOp
-			{
-				NextSendOp(
-					SendOperation* prevOp,
-					error_code prevEc,
-					SockScheduler& ss)
-					: mPrevOp(prevOp)
-					, mPrevEc(prevEc)
-					, mSched(ss) {}
-
-			private:
-				SendOperation* mPrevOp;
-				error_code mPrevEc;
-				SockScheduler& mSched;
-				std::coroutine_handle<> mHandle;
-				macoro::result<SendOperation*, macoro::error_code> mRes;
-
-			public:
-
-				std::coroutine_handle<> getHandle(
-					macoro::result<SendOperation*, macoro::error_code> r,
-					NextSendOp*& self)
-				{
-					COPROTO_ASSERT(this == self);
-					self = nullptr;
-					COPROTO_ASSERT(r.has_error() || r.value());
-					mRes = std::move(r);
-					return std::exchange(mHandle, nullptr);
-				}
-
-
-				void completePrev(Lock& lock, ExecutionQueue::Handle& queue)
-				{
-					COPROTO_ASSERT(mPrevOp);
-					auto& op = *mPrevOp;
-					if (mPrevEc)
-					{
-						op.setError(std::exchange(mPrevEc, code::cancel));
-					}
-					op.completeOn(queue, lock);
-					auto next = op.next();
-					op.setNext(nullptr);
-
-					assert(&op.fork().front_send(lock) == &op);
-					assert(mSched.mSendBufferBegin == &op);
-
-					mSched.mSendBufferBegin = next;
-					if (next == nullptr)
-						mSched.mSendBufferLast = nullptr;
-
-					op.fork().pop_front_send(lock);
-				}
-
-				bool await_ready() { return false; }
-				std::coroutine_handle<> await_suspend(std::coroutine_handle<> h)
-				{
-					ExecutionQueue::Handle queue;
-					{
-						auto lock = Lock(mSched.mMutex);
-						queue = mSched.mExQueue.acquire(lock);
-						if (mPrevOp)
-							completePrev(lock, queue);
-						if (mPrevEc || mSched.mEC)
-						{
-							COPROTO_ASSERT(mSched.mSendBufferBegin == nullptr || mSched.mSendBufferBegin->status() == SendOperation::Status::NotStarted);
-							mSched.close(queue, Caller::Sender, mPrevEc, lock);
-							mRes = macoro::Err(code::closed);
-							queue.push_back(h, {}, lock);
-						}
-						else
-						{
-							if (mSched.mSendBufferBegin)
-							{
-								COPROTO_ASSERT(mSched.mSendBufferBegin->status() == SendOperation::Status::NotStarted);
-								mSched.mSendBufferBegin->setStatus(SendOperation::Status::InProgress);
-								mRes = macoro::Ok(mSched.mSendBufferBegin);
-								queue.push_back(h, {}, lock);
-							}
-							else
-							{
-								mSched.mSendStatus = Status::Idle;
-								mSched.mNextSendOp = this;
-								mHandle = h;
-							}
-						}
-					}
-
-					return queue.runReturnLast().std_cast();
-				}
-
-				macoro::result<SendOperation*, macoro::error_code> await_resume()
-				{
-					COPROTO_ASSERT(mRes.has_error() || mRes.value());
-					return mRes;
-				}
-			};
+			enum class Caller { Sender, Recver, Extern };
 
 			NextSendOp* mNextSendOp = nullptr;
 			NextSendOp completeOpAndGetNextSend(SendOperation* op, error_code ec)
@@ -256,206 +309,11 @@ namespace coproto
 				return { op, ec, *this };
 			}
 
-			// an awaiter used to wait until we have a requested
-			// receive operation.
-			struct AnyRecvOp
-			{
-				AnyRecvOp(
-					RecvOperation* prevOp,
-					error_code prevEc,
-					SockScheduler& ss)
-					: mPrevOp(prevOp)
-					, mPrevEc(prevEc)
-					, mSched(ss) {}
-
-			private:
-				RecvOperation* mPrevOp;
-				error_code mPrevEc;
-				std::optional<error_code> mRes;
-				SockScheduler& mSched;
-				std::coroutine_handle<> mHandle;
-
-
-			public:
-
-				std::coroutine_handle<> getHandle(error_code r, AnyRecvOp*& self)
-				{
-					COPROTO_ASSERT(this == self);
-					self = nullptr;
-					mRes = std::move(r);
-					return std::exchange(mHandle, nullptr);
-				}
-
-				bool await_ready() { return false; }
-
-				void completePrev(Lock& lock, ExecutionQueue::Handle& queue)
-				{
-					COPROTO_ASSERT(mPrevOp);
-					auto& op = *mPrevOp;
-
-					if (mSched.mRecvCancelSrc.stop_possible() == false)
-						mSched.resetRecvToken();
-
-					//RECV_LOG("anyRecvOp::pop-recv");
-					auto& fork = op.fork();
-					//std::cout << "pop_front_recv " << op.mIndex << " f " << fork.mLocalId << " " << (size_t)&mSched << std::endl;
-					COPROTO_ASSERT(
-						mSched.mNumRecvs &&
-						fork.size_recv(lock) &&
-						&fork.front_recv(lock) == &op);
-
-					if (mPrevEc)
-					{
-						op.setError(std::exchange(mPrevEc, code::cancel));
-					}
-					op.completeOn(queue, lock);
-					fork.pop_front_recv(lock);
-					--mSched.mNumRecvs;
-				}
-
-				std::coroutine_handle<> await_suspend(std::coroutine_handle<>h)
-				{
-					ExecutionQueue::Handle queue;
-					{
-						auto lock = Lock(mSched.mMutex);
-						queue = mSched.mExQueue.acquire(lock);
-
-						if (mPrevOp)
-							completePrev(lock, queue);
-
-						if (mPrevEc || mSched.mEC)
-						{
-							mRes.emplace(code::cancel);
-							mSched.close(queue, Caller::Recver, mPrevEc, lock);
-							queue.push_back(h, {}, lock);
-						}
-						else
-						{
-							if (mSched.mNumRecvs)
-							{
-								mRes.emplace(code::success);
-								queue.push_back(h, {}, lock);
-							}
-							else
-							{
-								auto& mLogging = mSched.mLogging;
-								auto& mRecvLog = mSched.mRecvLog;
-								RECV_LOG("anyRecvOp::idle");
-								mSched.mRecvStatus = SockScheduler::Status::Idle;
-								mSched.mAnyRecvOp = this;
-								mHandle = h;
-							}
-						}
-					}
-
-					return queue.runReturnLast().std_cast();
-				}
-
-				error_code await_resume() {
-					COPROTO_ASSERT(mRes.has_value());
-					return mRes.value();
-				}
-			};
-
 			AnyRecvOp* mAnyRecvOp = nullptr;
 			auto completeOpAndWaitForAnyRecv(RecvOperation* prevOp, error_code prevEc) {
 				return AnyRecvOp{ prevOp, prevEc, *this };
 			}
 
-
-
-			struct GetRequestedRecvSocketFork
-			{
-				GetRequestedRecvSocketFork(SockScheduler& ss, u32 remoteForkId)
-					: mSched(ss)
-					, mRemoteForkId(remoteForkId)
-				{}
-			private:
-				macoro::result<RecvOperation*, std::error_code> mRes;
-				SockScheduler& mSched;
-				u32 mRemoteForkId;
-				std::coroutine_handle<> mHandle;
-
-			public:
-
-				u32 forkID()
-				{
-					return mRemoteForkId;
-				}
-
-				std::coroutine_handle<> getHandle(
-					macoro::result<RecvOperation*, std::error_code> r,
-					GetRequestedRecvSocketFork*& self)
-				{
-					COPROTO_ASSERT(this == self);
-					COPROTO_ASSERT(r.has_error() || r.value());
-					self = nullptr;
-					mRes = std::move(r);
-					return std::exchange(mHandle, nullptr);
-				}
-
-				bool await_ready()  noexcept { return false; }
-
-				std::coroutine_handle<> await_suspend(std::coroutine_handle<> h) noexcept
-				{
-					auto& mLogging = mSched.mLogging;
-					auto& mRecvLog = mSched.mRecvLog;
-
-					ExecutionQueue::Handle queue;
-					{
-
-						auto lock = Lock(mSched.mMutex);
-						queue = mSched.mExQueue.acquire(lock);
-
-						// make sure the fork ID they sent exist.
-						auto iter = mSched.mRemoteSocketForkMapping_.find(mRemoteForkId);
-						if (iter == mSched.mRemoteSocketForkMapping_.end())
-						{
-							mSched.close(queue, Caller::Recver, code::badCoprotoMessageHeader, lock);
-						}
-
-						if (mSched.mEC)
-						{
-							mRes = macoro::Err(mSched.mEC);
-							queue.push_back(h, {}, lock);
-						}
-						else
-						{
-
-							// get the fork and set the return value.
-							auto& fork = *iter->second;
-
-							// check of we have a matching recv
-							if (fork.size_recv(lock) == 0)
-							{
-								// ok, data has arrived but we dont have anywhere 
-								// to store it. We will store the continuation
-								// in the scheduler. Once the matching recv request
-								// arrives, we will resume.
-								RECV_LOG("getRequestedRecvSocketFork::idle");
-								mSched.mRecvStatus = SockScheduler::Status::RequestedRecvOp;
-								mHandle = h;
-								mSched.mGetRequestedRecvSocketFork = this;
-							}
-							else
-							{
-								RECV_LOG("getRequestedRecvSocketFork::resume");
-
-								mRes = macoro::Ok(&fork.front_recv(lock));
-								fork.front_recv(lock).setStatus(RecvOperation::Status::InProgress);
-								queue.push_back(h, {}, lock);
-							}
-						}
-					}
-					return queue.runReturnLast().std_cast();
-				}
-
-				macoro::result<RecvOperation*, std::error_code> await_resume()
-				{
-					assert(mRes.has_error() || mRes.value());
-					return std::move(mRes);
-				}
-			};
 
 			GetRequestedRecvSocketFork* mGetRequestedRecvSocketFork = nullptr;
 			auto getRequestedRecvSocketFork(u32 forkId)
@@ -463,9 +321,11 @@ namespace coproto
 				return GetRequestedRecvSocketFork(*this, forkId);
 			}
 
+			// a flag indicating if close() has been awaited.
+			bool mClosed = false;
 
-			// a function used to call socket.close().
-			unique_function<void(void)> mCloseSock;
+			// a awaiter used to call socket.close().
+			std::unique_ptr<CloseAwaiter::CloseAwaiterBase> mCloseSock;
 
 			// storage used to store the socket.
 			AnyNoCopy mSockStorage;
@@ -565,7 +425,7 @@ namespace coproto
 			macoro::task<> makeSendTask(Sock* socket);
 
 			std::vector<const char*> mRecvLog, mSendLog;
-		
+
 			template<typename Sock>
 			macoro::task<> receiveDataTask(Sock* socket);
 
@@ -581,95 +441,13 @@ namespace coproto
 				SessionID id,
 				Buffer&& buffer,
 				coroutine_handle<void> callback,
-				macoro::stop_token&& token)
-			{
-				assert(callback);
-				if (buffer.asSpan().size() == 0)
-				{
-					buffer.setError(code::sendLengthZeroMsg);
-					return callback;
-				}
+				macoro::stop_token&& token);
 
-				ExecutionQueue::Handle exQueue;
-
-				{
-					Lock l = Lock(mMutex);
-					exQueue = mExQueue.acquire(l);
-					auto fork = getLocalSocketFork(id, l);
-
-					if (mEC)
-					{
-						buffer.setError(mEC);
-						exQueue.push_back(callback, fork->mExecutor, l);
-					}
-					else
-					{
-						auto opPtr = &fork->emplace_send(l,
-							fork, callback, std::move(buffer));
-
-						if (mNextSendOp)
-						{
-							COPROTO_ASSERT(mSendStatus == Status::Idle);
-							mSendStatus = Status::InUse;
-							opPtr->setStatus(SendOperation::Status::InProgress);
-
-							assert(mSendBufferBegin == nullptr);
-							assert(mSendBufferLast == nullptr);
-
-							exQueue.push_back(mNextSendOp->getHandle(macoro::Ok(opPtr), mNextSendOp), {}, l);
-
-							mSendBufferBegin = opPtr;
-							mSendBufferLast = opPtr;
-						}
-						else
-						{
-							assert(mNextSendOp == nullptr);
-							assert(mSendBufferLast != nullptr);
-
-							mSendBufferLast->setNext(opPtr);
-							mSendBufferLast = opPtr;
-						}
-
-						opPtr->setCancelation(std::move(token), [this, opPtr] {
-							macoro::stop_source cancelSrc;
-							ExecutionQueue::Handle exQueue;
-							{
-								Lock l(mMutex);
-								exQueue = mExQueue.acquire(l);
-								if (opPtr->status() == SendOperation::Status::NotStarted)
-								{
-									// we will skip this operation and calls its cb
-									opPtr->setError(code::operation_aborted);
-									opPtr->completeOn(exQueue, l);
-									assert(opPtr->prev());
-									opPtr->prev()->setNext(opPtr->next());
-									opPtr->fork().erase_send(l, opPtr);
-								}
-								else
-								{
-									opPtr->setStatus(SendOperation::Status::Canceling);
-									// the operation is in progress, call cancel.
-									// in this case we must have alrady released then enque 
-									// lock and we are only holding the current lock.
-									if (cancelSrc.stop_possible())
-										exQueue.push_back_fn([cancelSrc = std::move(mSendCancelSrc)]() mutable {
-										cancelSrc.request_stop();
-											}, l);
-								}
-							}
-							exQueue.run();
-							});
-					}
-				}
-
-				return exQueue.runReturnLast();
-			}
 			MACORO_NODISCARD
 				coroutine_handle<void> recv(SessionID id, RecvBuffer* data, coroutine_handle<void> ch, macoro::stop_token&& token);
 
 
-			enum class Caller { Sender, Recver, Extern };
-			void close(
+			void cancel(
 				ExecutionQueue::Handle& queue,
 				Caller c,
 				error_code,
@@ -701,12 +479,17 @@ namespace coproto
 			}
 		};
 
+
 		template<typename SocketImpl>
 		void SockScheduler::init(SocketImpl* sock, SessionID sid)
 		{
 			mSockPtr = sock;
 			mExQueue.setMutex(mMutex);
-			mCloseSock = [this, sock] {sock->close(); };
+			//auto mCloseSock = [this, sock](std::coroutine_handle<> h) {
+
+			//	auto awaiter = sock->close();
+
+			//	};
 
 
 			mRecvToken = mRecvCancelSrc.get_token();
@@ -714,6 +497,9 @@ namespace coproto
 			Lock l;
 			initLocalSocketFork(sid, {}, l);
 
+
+			//mCloseSock = [this, sock] 
+			mCloseSock = std::unique_ptr<CloseAwaiter::CloseAwaiterBase>(new CloseAwaiter::CloseAwaiterImpl<SocketImpl>{ this, sock });
 
 			mRecvTask = macoro::make_blocking(receiveDataTask(sock));
 			mSendTask = macoro::make_blocking(makeSendTask(sock));
@@ -738,6 +524,275 @@ namespace coproto
 			auto ss = mSockStorage.emplace(std::move(s));
 			init(ss->get(), sid);
 		}
+
+
+
+		template<typename Buffer>
+		MACORO_NODISCARD coroutine_handle<void> SockScheduler::send(
+			SessionID id,
+			Buffer&& buffer,
+			coroutine_handle<void> callback,
+			macoro::stop_token&& token)
+		{
+			assert(callback);
+			if (buffer.asSpan().size() == 0)
+			{
+				buffer.setError(code::sendLengthZeroMsg);
+				return callback;
+			}
+
+			ExecutionQueue::Handle exQueue;
+
+			{
+				Lock l = Lock(mMutex);
+				exQueue = mExQueue.acquire(l);
+				auto fork = getLocalSocketFork(id, l);
+
+				if (mEC)
+				{
+					buffer.setError(mEC);
+					exQueue.push_back(callback, fork->mExecutor, l);
+				}
+				else
+				{
+					auto opPtr = &fork->emplace_send(l,
+						fork, callback, std::move(buffer));
+
+					if (mNextSendOp)
+					{
+						COPROTO_ASSERT(mSendStatus == Status::Idle);
+						mSendStatus = Status::InUse;
+						opPtr->setStatus(SendOperation::Status::InProgress);
+
+						assert(mSendBufferBegin == nullptr);
+						assert(mSendBufferLast == nullptr);
+
+						exQueue.push_back(mNextSendOp->getHandle(macoro::Ok(opPtr), mNextSendOp), {}, l);
+
+						mSendBufferBegin = opPtr;
+						mSendBufferLast = opPtr;
+					}
+					else
+					{
+						assert(mNextSendOp == nullptr);
+						assert(mSendBufferLast != nullptr);
+
+						mSendBufferLast->setNext(opPtr);
+						mSendBufferLast = opPtr;
+					}
+
+					opPtr->setCancelation(std::move(token), [this, opPtr] {
+						macoro::stop_source cancelSrc;
+						ExecutionQueue::Handle exQueue;
+						{
+							Lock l(mMutex);
+							exQueue = mExQueue.acquire(l);
+							if (opPtr->status() == SendOperation::Status::NotStarted)
+							{
+								// we will skip this operation and calls its cb
+								opPtr->setError(code::operation_aborted);
+								opPtr->completeOn(exQueue, l);
+								assert(opPtr->prev());
+								opPtr->prev()->setNext(opPtr->next());
+								opPtr->fork().erase_send(l, opPtr);
+							}
+							else
+							{
+								opPtr->setStatus(SendOperation::Status::Canceling);
+								// the operation is in progress, call cancel.
+								// in this case we must have alrady released then enque 
+								// lock and we are only holding the current lock.
+								if (cancelSrc.stop_possible())
+									exQueue.push_back_fn([cancelSrc = std::move(mSendCancelSrc)]() mutable {
+									cancelSrc.request_stop();
+										}, l);
+							}
+						}
+						exQueue.run();
+						});
+				}
+			}
+
+			return exQueue.runReturnLast();
+		}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+		inline std::coroutine_handle<> GetRequestedRecvSocketFork::getHandle(
+			macoro::result<RecvOperation*, std::error_code> r,
+			GetRequestedRecvSocketFork*& self)
+		{
+			COPROTO_ASSERT(this == self);
+			COPROTO_ASSERT(r.has_error() || r.value());
+			self = nullptr;
+			mRes = std::move(r);
+			return std::exchange(mHandle, nullptr);
+		}
+
+		inline bool GetRequestedRecvSocketFork::await_ready() noexcept { return false; }
+
+		inline std::coroutine_handle<> GetRequestedRecvSocketFork::await_suspend(std::coroutine_handle<> h) noexcept
+		{
+			auto& mLogging = mSched.mLogging;
+			auto& mRecvLog = mSched.mRecvLog;
+
+			ExecutionQueue::Handle queue;
+			{
+
+				auto lock = Lock(mSched.mMutex);
+				queue = mSched.mExQueue.acquire(lock);
+
+				// make sure the fork ID they sent exist.
+				auto iter = mSched.mRemoteSocketForkMapping_.find(mRemoteForkId);
+				if (iter == mSched.mRemoteSocketForkMapping_.end())
+				{
+					mSched.cancel(queue, SockScheduler::Caller::Recver, code::badCoprotoMessageHeader, lock);
+				}
+
+				if (mSched.mEC)
+				{
+					mRes = macoro::Err(mSched.mEC);
+					queue.push_back(h, {}, lock);
+				}
+				else
+				{
+
+					// get the fork and set the return value.
+					auto& fork = *iter->second;
+
+					// check of we have a matching recv
+					if (fork.size_recv(lock) == 0)
+					{
+						// ok, data has arrived but we dont have anywhere 
+						// to store it. We will store the continuation
+						// in the scheduler. Once the matching recv request
+						// arrives, we will resume.
+						RECV_LOG("getRequestedRecvSocketFork::idle");
+						mSched.mRecvStatus = SockScheduler::Status::RequestedRecvOp;
+						mHandle = h;
+						mSched.mGetRequestedRecvSocketFork = this;
+					}
+					else
+					{
+						RECV_LOG("getRequestedRecvSocketFork::resume");
+
+						mRes = macoro::Ok(&fork.front_recv(lock));
+						fork.front_recv(lock).setStatus(RecvOperation::Status::InProgress);
+						queue.push_back(h, {}, lock);
+					}
+				}
+			}
+			return queue.runReturnLast().std_cast();
+		}
+
+		inline macoro::result<RecvOperation*, std::error_code> GetRequestedRecvSocketFork::await_resume()
+		{
+			assert(mRes.has_error() || mRes.value());
+			return std::move(mRes);
+		}
+
+
+		inline std::coroutine_handle<> AnyRecvOp::getHandle(error_code r, AnyRecvOp*& self)
+		{
+			COPROTO_ASSERT(this == self);
+			self = nullptr;
+			mRes = std::move(r);
+			return std::exchange(mHandle, nullptr);
+		}
+
+		inline bool AnyRecvOp::await_ready() { return false; }
+
+		inline void AnyRecvOp::completePrev(Lock& lock, ExecutionQueue::Handle& queue)
+		{
+			COPROTO_ASSERT(mPrevOp);
+			auto& op = *mPrevOp;
+
+			if (mSched.mRecvCancelSrc.stop_possible() == false)
+				mSched.resetRecvToken();
+
+			//RECV_LOG("anyRecvOp::pop-recv");
+			auto& fork = op.fork();
+			//std::cout << "pop_front_recv " << op.mIndex << " f " << fork.mLocalId << " " << (size_t)&mSched << std::endl;
+			COPROTO_ASSERT(
+				mSched.mNumRecvs &&
+				fork.size_recv(lock) &&
+				&fork.front_recv(lock) == &op);
+
+			if (mPrevEc)
+			{
+				op.setError(std::exchange(mPrevEc, code::cancel));
+			}
+			op.completeOn(queue, lock);
+			fork.pop_front_recv(lock);
+			--mSched.mNumRecvs;
+		}
+
+		inline std::coroutine_handle<> AnyRecvOp::await_suspend(std::coroutine_handle<>h)
+		{
+			ExecutionQueue::Handle queue;
+			{
+				auto lock = Lock(mSched.mMutex);
+				queue = mSched.mExQueue.acquire(lock);
+
+				if (mPrevOp)
+					completePrev(lock, queue);
+
+				if (mPrevEc || mSched.mEC)
+				{
+					mRes.emplace(code::cancel);
+					mSched.cancel(queue, SockScheduler::Caller::Recver, mPrevEc, lock);
+					queue.push_back(h, {}, lock);
+				}
+				else
+				{
+					if (mSched.mNumRecvs)
+					{
+						mRes.emplace(code::success);
+						queue.push_back(h, {}, lock);
+					}
+					else
+					{
+						auto& mLogging = mSched.mLogging;
+						auto& mRecvLog = mSched.mRecvLog;
+						RECV_LOG("anyRecvOp::idle");
+						mSched.mRecvStatus = SockScheduler::Status::Idle;
+						mSched.mAnyRecvOp = this;
+						mHandle = h;
+					}
+				}
+			}
+
+			return queue.runReturnLast().std_cast();
+		}
+
+		inline error_code AnyRecvOp::await_resume() {
+			COPROTO_ASSERT(mRes.has_value());
+			return mRes.value();
+		}
+
+
 
 		template<typename Sock>
 		macoro::task<void> SockScheduler::receiveDataTask(Sock* sock)
@@ -833,6 +888,99 @@ namespace coproto
 
 		}
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+		inline std::coroutine_handle<> NextSendOp::getHandle(
+			macoro::result<SendOperation*, macoro::error_code> r,
+			NextSendOp*& self)
+		{
+			COPROTO_ASSERT(this == self);
+			self = nullptr;
+			COPROTO_ASSERT(r.has_error() || r.value());
+			mRes = std::move(r);
+			return std::exchange(mHandle, nullptr);
+		}
+
+
+		inline void NextSendOp::completePrev(Lock& lock, ExecutionQueue::Handle& queue)
+		{
+			COPROTO_ASSERT(mPrevOp);
+			auto& op = *mPrevOp;
+			if (mPrevEc)
+			{
+				op.setError(std::exchange(mPrevEc, code::cancel));
+			}
+			op.completeOn(queue, lock);
+			auto next = op.next();
+			op.setNext(nullptr);
+
+			assert(&op.fork().front_send(lock) == &op);
+			assert(mSched.mSendBufferBegin == &op);
+
+			mSched.mSendBufferBegin = next;
+			if (next == nullptr)
+				mSched.mSendBufferLast = nullptr;
+
+			op.fork().pop_front_send(lock);
+		}
+
+		inline bool NextSendOp::await_ready() { return false; }
+		inline std::coroutine_handle<> NextSendOp::await_suspend(std::coroutine_handle<> h)
+		{
+			ExecutionQueue::Handle queue;
+			{
+				auto lock = Lock(mSched.mMutex);
+				queue = mSched.mExQueue.acquire(lock);
+				if (mPrevOp)
+					completePrev(lock, queue);
+				if (mPrevEc || mSched.mEC)
+				{
+					COPROTO_ASSERT(mSched.mSendBufferBegin == nullptr || mSched.mSendBufferBegin->status() == SendOperation::Status::NotStarted);
+					mSched.cancel(queue, SockScheduler::Caller::Sender, mPrevEc, lock);
+					mRes = macoro::Err(code::closed);
+					queue.push_back(h, {}, lock);
+				}
+				else
+				{
+					if (mSched.mSendBufferBegin)
+					{
+						COPROTO_ASSERT(mSched.mSendBufferBegin->status() == SendOperation::Status::NotStarted);
+						mSched.mSendBufferBegin->setStatus(SendOperation::Status::InProgress);
+						mRes = macoro::Ok(mSched.mSendBufferBegin);
+						queue.push_back(h, {}, lock);
+					}
+					else
+					{
+						mSched.mSendStatus = SockScheduler::Status::Idle;
+						mSched.mNextSendOp = this;
+						mHandle = h;
+					}
+				}
+			}
+
+			return queue.runReturnLast().std_cast();
+		}
+
+		inline macoro::result<SendOperation*, macoro::error_code> NextSendOp::await_resume()
+		{
+			COPROTO_ASSERT(mRes.has_error() || mRes.value());
+			return mRes;
+		}
+
+
+
 		template<typename Sock>
 		macoro::task<void> SockScheduler::makeSendTask(Sock* sock)
 		{
@@ -910,6 +1058,44 @@ namespace coproto
 			}
 
 			SEND_LOG("exit");
+		}
+
+
+
+
+		template<typename Socket>
+		std::coroutine_handle<> CloseAwaiter::CloseAwaiterImpl<Socket>::await_suspend(std::coroutine_handle<> h) 
+		{
+			mSched->mClosed = true;
+			if constexpr (std::is_void_v<close_res>)
+			{
+				mSock->close();
+				return h;
+			}
+			else
+			{
+				mAwaiter.emplace(mSock->close());
+
+				if (mAwaiter->await_ready())
+					return h;
+
+				using await_suspend_res = std::invoke_result_t<decltype(&Awaiter::await_suspend), Awaiter, std::coroutine_handle<>>;
+				if constexpr (std::is_void_v<await_suspend_res >)
+				{
+					mAwaiter->await_suspend(h);
+					return std::noop_coroutine();
+				}
+				else
+					return mAwaiter->await_suspend(h);
+			}
+		};
+
+		template<typename Socket>
+		void CloseAwaiter::CloseAwaiterImpl<Socket>::await_resume()
+		{
+
+			if constexpr (std::is_void_v<close_res> == false)
+				mAwaiter->await_resume();
 		}
 	}
 }
