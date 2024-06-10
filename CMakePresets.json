@@ -45,13 +45,16 @@
       },
       "cacheVariables": {
         "CMAKE_BUILD_TYPE": "Debug",
-        "COPROTO_FETCH_AUTO": "ON",
+        "COPROTO_FETCH_AUTO": true,
         "COPROTO_ENABLE_BOOST": true,
+        "COPROTO_ENABLE_OPENSSL": true,
         "COPROTO_SOCK_LOGGING": true,
         "COPROTO_ASAN": true,
         "COPROTO_CPP_VER": "20",
         "VERBOSE_FETCH": true,
-        "CMAKE_INSTALL_PREFIX": "${sourceDir}/out/install/${presetName}"
+        "CMAKE_INSTALL_PREFIX": "${sourceDir}/out/install/${presetName}",
+        "_CMAKE_PREFIX_PATH": "C:/OpenSSL-Win64",
+        "_OPENSSL_ROOT_DIR": "C:/OpenSSL-Win64"
       },
       "vendor": {
         "microsoft.com/VisualStudioSettings/CMake/1.0": {

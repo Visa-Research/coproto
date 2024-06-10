@@ -173,6 +173,8 @@ endif()
 ###########################################################################
 
 if(COPROTO_ENABLE_OPENSSL)
+    message("CMAKE_PREFIX_PATH=${CMAKE_PREFIX_PATH}")
+    message("OPENSSL_ROOT_DIR=${OPENSSL_ROOT_DIR}")
     find_package(OpenSSL REQUIRED)
     
     message("OPENSSL_INCLUDE_DIR=${OPENSSL_INCLUDE_DIR}")
