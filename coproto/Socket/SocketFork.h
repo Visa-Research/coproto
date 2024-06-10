@@ -54,6 +54,7 @@ namespace coproto::internal
 		// the queue of send operations assoicated with this fork.
 		Queue<SendOperation> mSendOps;
 	public:
+
 		template<typename... Args>
 		SendOperation& emplace_send(Lock&, Args&&... args)
 		{
@@ -67,7 +68,6 @@ namespace coproto::internal
 			mRecvOps.emplace_back(std::forward<Args>(args)...);
 			return mRecvOps.back();
 		}
-
 
 		template<typename... Args>
 		void pop_front_send(Lock&)

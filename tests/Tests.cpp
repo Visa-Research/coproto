@@ -273,7 +273,8 @@ namespace coproto
     TestCollection testCollection([](TestCollection& t) {
 
         t.add("InlinePolyTest                        ", tests::InlinePolyTest);
-        
+        t.add("Queue_test                            ", tests::Queue_test);
+
         t.add("LocalAsyncSocket_noop_test            ", tests::LocalAsyncSocket_noop_test);
         t.add("LocalAsyncSocket_sendRecv_test        ", tests::LocalAsyncSocket_sendRecv_test);
         t.add("LocalAsyncSocket_parSendRecv_test     ", tests::LocalAsyncSocket_parSendRecv_test);
