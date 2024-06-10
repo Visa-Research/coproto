@@ -227,30 +227,6 @@ namespace coproto
 					}
 				}
 
-				Awaiter(Awaiter&& a)
-					: mSock(a.mSock)
-					, mData(a.mData)
-					, mBt(a.mBt)
-					, mType(a.mType)
-					, mEc(std::move(a.mEc))
-					, mHandle(a.mHandle)
-					, mCancellationRequested(a.mCancellationRequested.load())
-					, mSynchronousFlag(a.mSynchronousFlag.load())
-					, mToken(std::move(a.mToken))
-					, mReg(std::move(a.mReg))
-					, mActiveCount(std::move(a.mActiveCount))
-#ifdef COPROTO_ASIO_LOG
-					, mLogState(a.mLogState)
-					, mIdx(a.mIdx)
-#endif
-				{
-					if (mHandle)
-					{
-						std::cout << "awaiter can not move after being started" << std::endl;
-						std::terminate();
-					}
-				}
-
 				Sock* mSock;
 				span<u8> mData;
 				u64 mBt = 0;
