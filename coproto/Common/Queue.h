@@ -62,6 +62,10 @@ namespace coproto
 
 		struct Iterator
 		{
+
+			using difference_type = std::ptrdiff_t;
+			using value_type = T;
+
 			Block* mBlock = nullptr;
 			u64 mIndex = 0;
 			T* mVal = nullptr;
