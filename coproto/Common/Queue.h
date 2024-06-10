@@ -17,6 +17,7 @@
 
 namespace coproto
 {
+	std::string hexPtr(void* p);
 
 	// a variable sized queue with small buffer optimization and
 	// stable iterators. Items can be pushed to the back, popped from
@@ -212,8 +213,7 @@ namespace coproto
 
 		~Queue()
 		{
-			while (size())
-				pop_front();
+			clear();
 		}
 
 		void reserve(u64 capacity)
@@ -241,6 +241,7 @@ namespace coproto
 		{
 			auto allocSize = sizeof(Block) + nextSize * sizeof(Entry);
 			auto ptr = ::operator new(allocSize, std::align_val_t{ 32 });
+			//std::cout << "new " << hexPtr(ptr) << " " << nextSize << std::endl;
 
 			auto blk = new (ptr) Block(nextSize);
 			if (mLast)
@@ -293,7 +294,10 @@ namespace coproto
 				{
 					auto n = mBegin->mNext;
 					if ((u8*)mBegin != (u8*)&mInitalBuff)
+					{
+						//std::cout << "del " << hexPtr(mBegin) << " " << mBegin->capacity() << std::endl;
 						::operator delete((void*)mBegin, std::align_val_t{ 32 });
+					}
 					mBegin = n;
 				}
 			}
@@ -303,6 +307,13 @@ namespace coproto
 		{
 			while (size())
 				pop_front();
+
+			// the last buffer;
+			if (mBegin != (Block*)&mInitalBuff)
+			{
+				//std::cout << "del " << hexPtr(mBegin) << " " << mBegin->capacity() << std::endl;
+				::operator delete((void*)mBegin, std::align_val_t{ 32 });
+			}
 		}
 
 		template<typename ...Args>
