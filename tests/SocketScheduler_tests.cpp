@@ -205,7 +205,8 @@ namespace coproto
 			bool sendDone1 = false;
 			auto sendTask1 = tt(sendDone1);
 
-			macoro::stop_source src0, src1;
+			macoro::stop_source src0;
+			macoro::stop_source src1;
 			auto token0 = src0.get_token();
 			auto token1 = src1.get_token();
 
