@@ -207,18 +207,16 @@ namespace coproto
 
 			macoro::stop_source src0;
 			macoro::stop_source src1;
-			auto token0 = src0.get_token();
-			auto token1 = src1.get_token();
 
 			sImpl->enableLogging();
 
 			internal::RefSendAwaiter<std::vector<u8>> p0(sImpl.get(), sender.mId, sendBuff, {});
-			sImpl->send(sender.mId, p0.getBuffer(), sendTask0.handle(), std::move(token0)).resume();
+			sImpl->send(sender.mId, p0.getBuffer(), sendTask0.handle(), src0.get_token()).resume();
 			if (sendDone0)
 				throw MACORO_RTE_LOC;
 
 			internal::RefSendAwaiter<std::vector<u8>> p1(sImpl.get(), sender.mId, sendBuff, {});
-			sImpl->send(sender.mId, p1.getBuffer(), sendTask1.handle(), std::move(token1)).resume();
+			sImpl->send(sender.mId, p1.getBuffer(), sendTask1.handle(), src1.get_token()).resume();
 			if (sendDone1)
 				throw MACORO_RTE_LOC;
 

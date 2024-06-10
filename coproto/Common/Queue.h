@@ -24,16 +24,8 @@ namespace coproto
 	public:
 		const static u64 DefaultCapacity = _DefaultCapacity;
 
-		struct Entry
-		{
-			bool mEmpty = false;
-			T mVal;
-
-			template<typename... Args>
-			Entry(Args&&... args)
-				: mVal(std::forward<Args>(args)...)
-			{}
-		};
+		//struct Entry =
+		using Entry = std::optional<T>;
 
 		struct Block {
 
@@ -134,24 +126,23 @@ namespace coproto
 		T& front()
 		{
 			COPROTO_ASSERT(mSize);
-			return front_entry().mVal;
+			return front_entry().value();
 		}
 
 		T& back()
 		{
 			COPROTO_ASSERT(mSize);
-			return mEnd->back().mVal;
+			return mEnd->back().value();
 		}
 
 		void pop_front()
 		{
 			front_entry().~Entry();
 			--mSize;
-			mBegin->begin()->mEmpty = true;
 
 			while (
 				mBegin->occupied() != 0 &&
-				mBegin->begin()->mEmpty)
+				mBegin->begin()->has_value())
 			{
 				++mBegin->mBegin;
 
@@ -172,13 +163,18 @@ namespace coproto
 				pop_front();
 		}
 
+		template<typename ...Args>
+		void construct(Entry* ptr, Args&&... args)
+		{
+			new (ptr) Entry(std::in_place_t{}, std::forward<Args>(args)...);
+		}
+
 		void push_back(const T& t)
 		{
 			if (mEnd == nullptr || mEnd->vacant() == 0)
 				allocateBlock();
 
-			auto ptr = mEnd->end();
-			new (ptr) Entry(t);
+			construct(mEnd->end(), t);
 			++mEnd->mEnd;
 			++mSize;
 		}
@@ -188,8 +184,7 @@ namespace coproto
 			if (mEnd == nullptr || mEnd->vacant() == 0)
 				allocateBlock();
 
-			auto ptr = mEnd->end();
-			new (ptr) Entry(std::forward<T>(t));
+			construct(mEnd->end(), std::move(t));
 			++mEnd->mEnd;
 			++mSize;
 		}
@@ -199,9 +194,8 @@ namespace coproto
 		{
 			if (mEnd == nullptr || mEnd->vacant() == 0)
 				allocateBlock();
-			auto ptr = mEnd->end();
-			assert(ptr < mEnd->data() + mEnd->capacity());
-			new (ptr) Entry(std::forward<Args>(args)...);
+
+			construct(mEnd->end(), std::forward<Args>(args)...);
 			++mEnd->mEnd;
 			++mSize;
 		}
@@ -215,10 +209,16 @@ namespace coproto
 				pop_front();
 			else
 			{
-				Entry& entry = *(Entry*)(((u8*)ptr) - COPROTO_OFFSETOF(Entry, mVal));
-				assert(entry.mEmpty == false);
+				// front it just some arbitray entry in the queue. We need to find calculate
+				// the offset without undefined behavior.
+				auto& front = front_entry();
+
+				u64 offset = (u64)((u8*)&front.value() - (u8*)&front);
+				Entry& entry = *(Entry*)((u8*)ptr - offset);
+				assert(entry.has_value());
+				assert(&entry.value() == ptr);
 				--mSize;
-				entry.mEmpty = true;
+				entry.reset();
 			}
 		}
 	};
