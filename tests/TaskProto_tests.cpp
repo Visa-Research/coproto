@@ -36,7 +36,7 @@ namespace coproto
 			for (auto type : types)//{EvalTypes::blocking})
 			{
 
-				int recv = 0;
+				//int recv = 0;
 				//std::array<bool, 2> started = { false,false };
 
 				auto task_proto = [&](Socket ss, bool send)->task<void>
@@ -57,7 +57,7 @@ namespace coproto
 							std::cout << "task recv start "  << std::endl;
 							//started[1] = true;
 							co_await ss.recv(cc);
-							recv = cc;
+							//recv = cc;
 							std::cout << "task recv done" << std::endl;
 						}
 					};
