@@ -45,29 +45,23 @@ namespace coproto
 						int cc;
 						if (send)
 						{
-							std::cout << "task send start " << std::endl;
 							//started[0] = true;
 							cc = 42;
 							co_await ss.send(cc);
-							std::cout << "task send done" << std::endl;
 
 						}
 						else
 						{
-							std::cout << "task recv start " << std::endl;
 							//started[1] = true;
 							co_await ss.recv(cc);
 							//recv = cc;
-							std::cout << "task recv done" << std::endl;
 						}
 					};
 
 				//auto tt = {{ task_proto(Socket{}, 0), task_proto(Socket{}, 0) }}
 				//    | macoro::when_all_ready()
 				//    | macoro::make_blocking();
-				std::cout << "calling eval " << std::endl;
 				auto r = eval(task_proto, type);
-				std::cout << "done eval " << std::endl;
 
 				std::get<0>(r).result();
 				std::get<1>(r).result();
@@ -77,10 +71,10 @@ namespace coproto
 
 		void task_strSendRecv_Test()
 		{
-			bool verbose = false;
 			//int sDone = 0, rDone = 0;
 			auto proto = [&](Socket& s, bool party) -> task<void> {
 
+				bool verbose = false;
 				std::string sStr("hello from 0");
 				std::string sRtr; sRtr.resize(sStr.size());
 				for (u64 i = 0; i < 5; ++i)
@@ -293,8 +287,8 @@ namespace coproto
 
 		void task_typedRecv_Test()
 		{
-			bool verbose = false;
-			auto proto = [verbose](Socket& sock, bool party) -> task<void> {
+			auto proto = [](Socket& sock, bool party) -> task<void> {
+				bool verbose = false;
 
 				std::vector<u64> buff, rBuff;
 				for (u64 i = 0; i < 5; ++i)
@@ -773,8 +767,8 @@ namespace coproto
 
 		void task_nestedProtocol_Test()
 		{
-			bool verbose = false;
-			auto proto = [verbose](Socket& s, bool party) -> task<void> {
+			auto proto = [](Socket& s, bool party) -> task<void> {
+				bool verbose = false;
 				std::string str("hello from 0");
 				u64 n = 5;
 				if (party)
@@ -910,11 +904,13 @@ namespace coproto
 						if (code != code::uncaughtException)
 						{
 							std::cout << " bad code " << code << " " << COPROTO_LOCATION << std::endl;
+							throw std::runtime_error(COPROTO_LOCATION);
 						}
 					}
 					else
 					{
 						std::cout << "no error" << COPROTO_LOCATION << std::endl;
+						throw std::runtime_error(COPROTO_LOCATION);
 					}
 					//ec = co_await send(buff).wrap();
 
@@ -932,16 +928,10 @@ namespace coproto
 						std::cout << "ex on recv" << std::endl;
 						throw;
 					}
-					try {
 
-						co_await task_throwClient(s, n);
-
-					}
-					catch (...)
-					{
-						std::cout << "ex on task_throwClient" << std::endl;
-						throw;
-					}
+					co_await(task_throwClient(s, n) | macoro::wrap());
+					//if (r.has_error() == false)
+						//throw COPROTO_RTE;
 				}
 				};
 
@@ -1203,7 +1193,7 @@ namespace coproto
 					co_await s.close();
 					std::rethrow_exception(exPtr);
 				}
-		};
+				};
 #ifdef MULTI 
 #undef MULTI
 #endif
@@ -1319,7 +1309,7 @@ namespace coproto
 
 			}
 
-	}
+				}
 
 		void task_cancel_send_test()
 		{
@@ -1392,6 +1382,6 @@ namespace coproto
 		}
 
 #endif
-}
+		}
 
-}
+	}

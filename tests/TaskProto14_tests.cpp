@@ -389,12 +389,12 @@ namespace coproto
 
 						if (t != EvalTypes::Buffering &&
 							as_error_code(r.error()) != code::remoteClosed)
-							throw std::runtime_error("");
+							throw std::runtime_error(COPROTO_LOCATION);
 
 						MC_AWAIT_SET(r, s.send(buff) | macoro::wrap());
 						if (t != EvalTypes::Buffering &&
 							as_error_code(r.error()) != code::cancel)
-							throw std::runtime_error("");
+							throw std::runtime_error(COPROTO_LOCATION);
 
 					}
 					else
@@ -403,16 +403,16 @@ namespace coproto
 						MC_AWAIT_SET(r, s.recv(buff) | macoro::wrap());
 
 						if (as_error_code(r.error()) != code::badBufferSize)
-							throw std::runtime_error("");
+							throw std::runtime_error(COPROTO_LOCATION);
 
 
 						MC_AWAIT_SET(r, macoro::wrap(s.recv(buff)));
 						if (as_error_code(r.error()) != code::cancel)
-							throw std::runtime_error("");
+							throw std::runtime_error(COPROTO_LOCATION);
 
 						MC_AWAIT_SET(r, macoro::wrap(s.send(buff)));
 						if (as_error_code(r.error()) != code::cancel)
-							throw std::runtime_error("");
+							throw std::runtime_error(COPROTO_LOCATION);
 					}
 
 					MC_END();
@@ -656,12 +656,12 @@ namespace coproto
 
 		void task14_nestedProtocol_Test()
 		{
-			bool verbose = false;
-			auto proto = [verbose](Socket& s, bool party) -> task<void> {
+			auto proto = [](Socket& s, bool party) -> task<void> {
 				MC_BEGIN(task<>, =
 					, str = std::string("hello from 0")
 					, n = u64(5)
 					, r = macoro::result<void>{}
+					, verbose = false
 				);
 				if (party)
 				{
@@ -806,7 +806,7 @@ namespace coproto
 				else
 				{
 					MC_AWAIT(s.recv(buff));
-					MC_AWAIT(task14_throwClient(s, n));
+					MC_AWAIT(task14_throwClient(s, n) | macoro::wrap());
 				}
 
 				MC_END();
