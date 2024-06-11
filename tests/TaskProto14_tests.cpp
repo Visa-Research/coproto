@@ -36,23 +36,23 @@ namespace coproto
 			for (auto type : types)//{EvalTypes::blocking})
 			{
 
-				int recv = 0;
-				std::array<bool, 2> started = { false,false };
+				//int recv = 0;
+				//std::array<bool, 2> started = { false,false };
 
 				auto task_proto = [&](Socket ss, bool send)->task<void>
 					{
-						MC_BEGIN(task<void>, ss, send, cc = int{}, &started, &recv);
+						MC_BEGIN(task<void>, ss, send, cc = int{}/*, &started, &recv*/);
 						if (send)
 						{
-							started[0] = true;
+							//started[0] = true;
 							cc = 42;
 							MC_AWAIT(ss.send(cc));
 						}
 						else
 						{
-							started[1] = true;
+							//started[1] = true;
 							MC_AWAIT(ss.recv(cc));
-							recv = cc;
+							//recv = cc;
 						}
 
 						MC_END();
@@ -68,7 +68,7 @@ namespace coproto
 		void task14_strSendRecv_Test()
 		{
 			bool verbose = false;
-			int sDone = 0, rDone = 0;
+			//int sDone = 0, rDone = 0;
 			auto proto = [&](Socket& s, bool party) -> task<void> {
 
 				MC_BEGIN(task<>, &, party
@@ -120,13 +120,13 @@ namespace coproto
 				{
 					if (verbose)
 						std::cout << "s done " << std::endl;
-					++sDone;
+					//++sDone;
 				}
 				else
 				{
 					if (verbose)
 						std::cout << "r done " << std::endl;
-					++rDone;
+					//++rDone;
 				}
 
 				MC_END();
