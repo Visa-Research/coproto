@@ -78,7 +78,7 @@ namespace coproto
 		void task_strSendRecv_Test()
 		{
 			bool verbose = false;
-			int sDone = 0, rDone = 0;
+			//int sDone = 0, rDone = 0;
 			auto proto = [&](Socket& s, bool party) -> task<void> {
 
 				std::string sStr("hello from 0");
@@ -126,13 +126,13 @@ namespace coproto
 				{
 					if (verbose)
 						std::cout << "s done " << std::endl;
-					++sDone;
+					//++sDone;
 				}
 				else
 				{
 					if (verbose)
 						std::cout << "r done " << std::endl;
-					++rDone;
+					//++rDone;
 				}
 
 				};
