@@ -85,7 +85,7 @@ jobs:
       # Runs a set of commands using the runners shell
       - name: build library 20
         run: |
-          python3 build.py  -D COPROTO_ENABLE_BOOST=OFF -DCOPROTO_CPP_VER=20 -DCOPROTO_ASAN=ON
+          python3 build.py  -D COPROTO_ENABLE_BOOST=OFF -DCOPROTO_CPP_VER=20 -DCOPROTO_ASAN=ON  -DCMAKE_BUILD_TYPE=Debug
               
       - name: unit test 20
         run: |
@@ -94,7 +94,7 @@ jobs:
       - name: find source tree
         run: |
             cd cmake/testProject
-            cmake -S . -B out/  -DCMAKE_BUILD_TYPE=Release -D CMAKE_PREFIX_PATH=../../
+            cmake -S . -B out/  -DCMAKE_BUILD_TYPE=Debug -D CMAKE_PREFIX_PATH=../../
             cmake --build out/
             ./out/main
             rm -rf out/
@@ -113,7 +113,7 @@ jobs:
         run: |
             python3 build.py --install=~/install
             cd cmake/testProject
-            cmake -S . -B out/  -DCMAKE_BUILD_TYPE=Release -DCMAKE_PREFIX_PATH=~/install
+            cmake -S . -B out/  -DCMAKE_BUILD_TYPE=Debug -DCMAKE_PREFIX_PATH=~/install
             cmake --build out/
             ./out/main
             rm -rf out/
@@ -124,7 +124,7 @@ jobs:
         run: |
             python3 build.py --install --sudo
             cd cmake/testProject
-            cmake -S . -B out/  -DCMAKE_BUILD_TYPE=Release
+            cmake -S . -B out/  -DCMAKE_BUILD_TYPE=Debug
             cmake --build out/
             ./out/main
             rm -rf out/
