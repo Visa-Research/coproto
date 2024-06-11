@@ -54,7 +54,7 @@ namespace coproto
 						}
 						else
 						{
-							std::cout << "task recv start" << std::endl;
+							std::cout << "task recv start " << (size_t)&started[1] << std::endl;
 							started[1] = true;
 							co_await ss.recv(cc);
 							recv = cc;
@@ -65,7 +65,7 @@ namespace coproto
 				//auto tt = {{ task_proto(Socket{}, 0), task_proto(Socket{}, 0) }}
 				//    | macoro::when_all_ready()
 				//    | macoro::make_blocking();
-				std::cout << "calling eval " << std::endl;
+				std::cout << "calling eval "<< (size_t)&started[1] << std::endl;
 				auto r = eval(task_proto, type);
 				std::cout << "done eval " << std::endl;
 
