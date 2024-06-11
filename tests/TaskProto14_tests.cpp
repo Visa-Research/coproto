@@ -1221,16 +1221,16 @@ namespace coproto
 			auto maxLag = 20;
 			macoro::stop_source src;
 			auto token = src.get_token();
-			macoro::thread_pool ios;
+			static macoro::thread_pool ios;
 			auto w = ios.make_work();
 			ios.create_thread();
 			static std::chrono::time_point<std::chrono::steady_clock> start, end;
-			auto proto = [&](Socket& s, bool party) -> task<void>
+			auto proto = [](Socket& s, bool party) -> task<void>
 				{
-					MC_BEGIN(task<>, s, ios = &ios, i = int{});
+					MC_BEGIN(task<>, s, i = int{});
 
 					start = std::chrono::steady_clock::now();
-					MC_AWAIT(s.recv(i, macoro::timeout(*ios, std::chrono::milliseconds(15))));
+					MC_AWAIT(s.recv(i, macoro::timeout(ios, std::chrono::milliseconds(15))));
 					end = std::chrono::steady_clock::now();
 
 					MC_END();
