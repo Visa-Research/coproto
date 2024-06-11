@@ -41,26 +41,34 @@ namespace coproto
 
 				auto task_proto = [&](Socket ss, bool send)->task<void>
 					{
+
 						int cc;
 						if (send)
 						{
+							std::cout << "task send start " << std::endl;
 							started[0] = true;
 							cc = 42;
 							co_await ss.send(cc);
+							std::cout << "task send done" << std::endl;
+
 						}
 						else
 						{
+							std::cout << "task recv start" << std::endl;
 							started[1] = true;
 							co_await ss.recv(cc);
 							recv = cc;
+							std::cout << "task recv done" << std::endl;
 						}
 					};
 
 				//auto tt = {{ task_proto(Socket{}, 0), task_proto(Socket{}, 0) }}
 				//    | macoro::when_all_ready()
 				//    | macoro::make_blocking();
-
+				std::cout << "calling eval " << std::endl;
 				auto r = eval(task_proto, type);
+				std::cout << "done eval " << std::endl;
+
 				std::get<0>(r).result();
 				std::get<1>(r).result();
 			}
