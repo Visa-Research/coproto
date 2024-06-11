@@ -1227,10 +1227,10 @@ namespace coproto
 			static std::chrono::time_point<std::chrono::steady_clock> start, end;
 			auto proto = [&](Socket& s, bool party) -> task<void>
 				{
-					MC_BEGIN(task<>, &s, &ios, i = int{});
+					MC_BEGIN(task<>, s, ios = &ios, i = int{});
 
 					start = std::chrono::steady_clock::now();
-					MC_AWAIT(s.recv(i, macoro::timeout(ios, std::chrono::milliseconds(15))));
+					MC_AWAIT(s.recv(i, macoro::timeout(*ios, std::chrono::milliseconds(15))));
 					end = std::chrono::steady_clock::now();
 
 					MC_END();
