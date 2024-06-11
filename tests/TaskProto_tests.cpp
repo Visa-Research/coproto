@@ -54,7 +54,7 @@ namespace coproto
 						}
 						else
 						{
-							std::cout << "task recv start "  << std::endl;
+							std::cout << "task recv start " << std::endl;
 							//started[1] = true;
 							co_await ss.recv(cc);
 							//recv = cc;
@@ -884,14 +884,21 @@ namespace coproto
 		void task_nestedProtocol_ErrorCode_Test()
 		{
 
-			bool hasEc = false;
 			u64 n = 2;
-			auto proto = [&hasEc, n](Socket& s, bool party) -> task<void> {
+			auto proto = [n](Socket& s, bool party) -> task<void> {
 
 				if (party)
 				{
 					std::vector<u64> buff(10);
-					co_await s.send(buff);
+
+					try {
+						co_await s.send(buff);
+					}
+					catch (...)
+					{
+						std::cout << "ex on send" << std::endl;
+						throw;
+					}
 					auto ec = co_await macoro::wrap(task_throwServer(s, n));
 
 					if (ec.has_error())
@@ -900,16 +907,14 @@ namespace coproto
 						auto error = ec.error();
 						auto code = as_error_code(error);
 
-						if (code == code::uncaughtException)
-							hasEc = true;
-						else
+						if (code != code::uncaughtException)
 						{
-							std::cout << " bad code " << code << " " << COPROTO_LOCATION<< std::endl;
+							std::cout << " bad code " << code << " " << COPROTO_LOCATION << std::endl;
 						}
 					}
 					else
 					{
-						std::cout << "no error"  <<COPROTO_LOCATION<< std::endl;
+						std::cout << "no error" << COPROTO_LOCATION << std::endl;
 					}
 					//ec = co_await send(buff).wrap();
 
@@ -919,8 +924,24 @@ namespace coproto
 				else
 				{
 					std::vector<u64> buff(10);
-					co_await s.recv(buff);
-					co_await task_throwClient(s, n);
+					try {
+						co_await s.recv(buff);
+					}
+					catch (...)
+					{
+						std::cout << "ex on recv" << std::endl;
+						throw;
+					}
+					try {
+
+						co_await task_throwClient(s, n);
+
+					}
+					catch (...)
+					{
+						std::cout << "ex on task_throwClient" << std::endl;
+						throw;
+					}
 				}
 				};
 
@@ -1182,7 +1203,7 @@ namespace coproto
 					co_await s.close();
 					std::rethrow_exception(exPtr);
 				}
-				};
+		};
 #ifdef MULTI 
 #undef MULTI
 #endif
@@ -1298,7 +1319,7 @@ namespace coproto
 
 			}
 
-		}
+	}
 
 		void task_cancel_send_test()
 		{
@@ -1371,6 +1392,6 @@ namespace coproto
 		}
 
 #endif
-	}
+}
 
 }
