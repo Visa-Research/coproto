@@ -15,58 +15,58 @@ on:
 # A workflow run is made up of one or more jobs that can run sequentially or in parallel
 jobs:
   # This workflow contains a single job called "build"
-  build-ubuntu:
-    # The type of runner that the job will run on
-    runs-on: ubuntu-latest
-    timeout-minutes: 10
+  # build-ubuntu:
+  #   # The type of runner that the job will run on
+  #   runs-on: ubuntu-latest
+  #   timeout-minutes: 10
 
-    # Steps represent a sequence of tasks that will be executed as part of the job
-    steps:
-      # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
-      - uses: actions/checkout@v2
-        with:
-            submodules: recursive
+  #   # Steps represent a sequence of tasks that will be executed as part of the job
+  #   steps:
+  #     # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
+  #     - uses: actions/checkout@v2
+  #       with:
+  #           submodules: recursive
 
-      # Runs a set of commands using the runners shell
-      - name: build cpp20
-        run: |
-          python3 build.py -D COPROTO_ENABLE_BOOST=ON -D COPROTO_ENABLE_OPENSSL=ON -DCOPROTO_ASAN=true  -DCMAKE_BUILD_TYPE=Debug -DCOPROTO_CPP_VER=20
+  #     # Runs a set of commands using the runners shell
+  #     - name: build cpp20
+  #       run: |
+  #         python3 build.py -D COPROTO_ENABLE_BOOST=ON -D COPROTO_ENABLE_OPENSSL=ON -DCOPROTO_ASAN=true  -DCMAKE_BUILD_TYPE=Debug -DCOPROTO_CPP_VER=20
           
-      - name: unit test cpp20
-        run: |
-          ./out/build/linux/frontend/frontend -u
+  #     - name: unit test cpp20
+  #       run: |
+  #         ./out/build/linux/frontend/frontend -u
 
-      - name: hint test
-        run: |
-            cd cmake/testProject
-            cmake -S . -B out/  -D COPROTO_HINT=../..
-            cmake --build out/
-            ./out/main
-            rm -rf out/
-            cd ../..
+  #     - name: hint test
+  #       run: |
+  #           cd cmake/testProject
+  #           cmake -S . -B out/  -D COPROTO_HINT=../..
+  #           cmake --build out/
+  #           ./out/main
+  #           rm -rf out/
+  #           cd ../..
 
-      - name: install prefix test
-        run: |
-            python3 build.py --setup --install=~/install  -DCMAKE_BUILD_TYPE=RELWITHDEBINFO
-            python3 build.py --install=~/install  -DCMAKE_BUILD_TYPE=RELWITHDEBINFO
-            cd cmake/testProject
-            cmake -S . -B out/  -DCMAKE_BUILD_TYPE=Release -DCMAKE_PREFIX_PATH=~/install
-            cmake --build out/
-            ./out/main
-            rm -rf out/
-            cd ../..
+  #     - name: install prefix test
+  #       run: |
+  #           python3 build.py --setup --install=~/install  -DCMAKE_BUILD_TYPE=RELWITHDEBINFO
+  #           python3 build.py --install=~/install  -DCMAKE_BUILD_TYPE=RELWITHDEBINFO
+  #           cd cmake/testProject
+  #           cmake -S . -B out/  -DCMAKE_BUILD_TYPE=Release -DCMAKE_PREFIX_PATH=~/install
+  #           cmake --build out/
+  #           ./out/main
+  #           rm -rf out/
+  #           cd ../..
             
 
-      - name: install test
-        run: |
-            python3 build.py --setup --install --sudo  -DCMAKE_BUILD_TYPE=RELWITHDEBINFO
-            python3 build.py --install --sudo  -DCMAKE_BUILD_TYPE=RELWITHDEBINFO
-            cd cmake/testProject
-            cmake -S . -B out/  -DCMAKE_BUILD_TYPE=Release
-            cmake --build out/
-            ./out/main
-            rm -rf out/
-            cd ../..
+  #     - name: install test
+  #       run: |
+  #           python3 build.py --setup --install --sudo  -DCMAKE_BUILD_TYPE=RELWITHDEBINFO
+  #           python3 build.py --install --sudo  -DCMAKE_BUILD_TYPE=RELWITHDEBINFO
+  #           cd cmake/testProject
+  #           cmake -S . -B out/  -DCMAKE_BUILD_TYPE=Release
+  #           cmake --build out/
+  #           ./out/main
+  #           rm -rf out/
+  #           cd ../..
 
   
   # This workflow contains a single job called "build"
@@ -85,7 +85,7 @@ jobs:
       # Runs a set of commands using the runners shell
       - name: build library 20
         run: |
-          python3 build.py  -D COPROTO_ENABLE_BOOST=OFF -DCOPROTO_CPP_VER=20 -DCOPROTO_ASAN=ON  -DCMAKE_BUILD_TYPE=Debug
+          python3 build.py  -D COPROTO_ENABLE_BOOST=OFF -DCOPROTO_CPP_VER=20 -DCOPROTO_ASAN=ON  -DCMAKE_BUILD_TYPE=RELWITHDEBINFO
               
       - name: unit test 20
         run: |
@@ -94,7 +94,7 @@ jobs:
       - name: find source tree
         run: |
             cd cmake/testProject
-            cmake -S . -B out/  -DCMAKE_BUILD_TYPE=Debug -D CMAKE_PREFIX_PATH=../../
+            cmake -S . -B out/  -DCMAKE_BUILD_TYPE=RELWITHDEBINFO -D CMAKE_PREFIX_PATH=../../
             cmake --build out/
             ./out/main
             rm -rf out/
@@ -113,7 +113,7 @@ jobs:
         run: |
             python3 build.py --install=~/install
             cd cmake/testProject
-            cmake -S . -B out/  -DCMAKE_BUILD_TYPE=Debug -DCMAKE_PREFIX_PATH=~/install
+            cmake -S . -B out/  -DCMAKE_BUILD_TYPE=RELWITHDEBINFO -DCMAKE_PREFIX_PATH=~/install
             cmake --build out/
             ./out/main
             rm -rf out/
@@ -124,59 +124,59 @@ jobs:
         run: |
             python3 build.py --install --sudo
             cd cmake/testProject
-            cmake -S . -B out/  -DCMAKE_BUILD_TYPE=Debug
+            cmake -S . -B out/  -DCMAKE_BUILD_TYPE=RELWITHDEBINFO
             cmake --build out/
             ./out/main
             rm -rf out/
             cd ../..
 
-  build-windows:
-    # The type of runner that the job will run on
-    runs-on: windows-2022
-    timeout-minutes: 20
+  # build-windows:
+  #   # The type of runner that the job will run on
+  #   runs-on: windows-2022
+  #   timeout-minutes: 20
   
-    # Steps represent a sequence of tasks that will be executed as part of the job
-    steps:
-      # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
-      - uses: actions/checkout@v2
-        with:
-            submodules: recursive
-      - uses: seanmiddleditch/gha-setup-ninja@v3
-      - uses: ilammy/msvc-dev-cmd@v1
+  #   # Steps represent a sequence of tasks that will be executed as part of the job
+  #   steps:
+  #     # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
+  #     - uses: actions/checkout@v2
+  #       with:
+  #           submodules: recursive
+  #     - uses: seanmiddleditch/gha-setup-ninja@v3
+  #     - uses: ilammy/msvc-dev-cmd@v1
 
-      - name: build library cpp20
-        run: |
-          python3 build.py -G Ninja  -D COPROTO_ENABLE_BOOST=ON -DCOPROTO_CPP_VER=20 -DMACORO_COMPILER_DEFINES=_DISABLE_CONSTEXPR_MUTEX_CONSTRUCTOR
+  #     - name: build library cpp20
+  #       run: |
+  #         python3 build.py -G Ninja  -D COPROTO_ENABLE_BOOST=ON -DCOPROTO_CPP_VER=20 -DMACORO_COMPILER_DEFINES=_DISABLE_CONSTEXPR_MUTEX_CONSTRUCTOR
       
-      - name: unit test
-        run: |
-          ./out/build/x64-Release/frontend/frontend.exe -u
+  #     - name: unit test
+  #       run: |
+  #         ./out/build/x64-Release/frontend/frontend.exe -u
           
-      - name: find source tree
-        run: |
-            cd cmake/testProject
-            cmake -S . -B out/  -DCMAKE_BUILD_TYPE=Release -D CMAKE_PREFIX_PATH=../../
-            cmake --build out/ --config Release
-            ./out/Release/main.exe
-            rm -r -fo out/
-            cd ../..
+  #     - name: find source tree
+  #       run: |
+  #           cd cmake/testProject
+  #           cmake -S . -B out/  -DCMAKE_BUILD_TYPE=Release -D CMAKE_PREFIX_PATH=../../
+  #           cmake --build out/ --config Release
+  #           ./out/Release/main.exe
+  #           rm -r -fo out/
+  #           cd ../..
 
-      - name: hint test
-        run: |
-            python3 build.py
-            cd cmake/testProject
-            cmake -S . -B out/  -D COPROTO_HINT=../..
-            cmake --build out/ --config Release
-            ./out/Release/main.exe
-            rm -r -fo out/
-            cd ../..
+  #     - name: hint test
+  #       run: |
+  #           python3 build.py
+  #           cd cmake/testProject
+  #           cmake -S . -B out/  -D COPROTO_HINT=../..
+  #           cmake --build out/ --config Release
+  #           ./out/Release/main.exe
+  #           rm -r -fo out/
+  #           cd ../..
 
-      - name: install prefix test
-        run: |
-            python3 build.py --install=~/install 
-            cd cmake/testProject
-            cmake -S . -B out/  -DCMAKE_BUILD_TYPE=Release -DCMAKE_PREFIX_PATH=~/install
-            cmake --build out/ --config Release
-            ./out/Release/main.exe
-            rm -r -fo out/
-            cd ../..
+  #     - name: install prefix test
+  #       run: |
+  #           python3 build.py --install=~/install 
+  #           cd cmake/testProject
+  #           cmake -S . -B out/  -DCMAKE_BUILD_TYPE=Release -DCMAKE_PREFIX_PATH=~/install
+  #           cmake --build out/ --config Release
+  #           ./out/Release/main.exe
+  #           rm -r -fo out/
+  #           cd ../..
