@@ -1,4 +1,6 @@
+include_guard(GLOBAL)
 
+set(COPROTO_BUILD ON)
 
 
 message(STATUS "Option: CMAKE_INSTALL_PREFIX    = ${CMAKE_INSTALL_PREFIX}")

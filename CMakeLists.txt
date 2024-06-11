@@ -14,7 +14,6 @@ if(NOT CMAKE_CONFIGURATION_TYPES AND NOT CMAKE_BUILD_TYPE)
 	SET(CMAKE_BUILD_TYPE Release)
 endif()
 
-set(COPROTO_BUILD ON)
 
 include(cmake/preamble.cmake)
 include(cmake/buildOptions.cmake)

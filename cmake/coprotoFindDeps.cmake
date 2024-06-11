@@ -1,7 +1,8 @@
-cmake_policy(PUSH)
-cmake_policy(SET CMP0057 NEW)
-cmake_policy(SET CMP0045 NEW)
-cmake_policy(SET CMP0074 NEW)
+#cmake_policy(PUSH)
+#cmake_policy(SET CMP0057 NEW)
+#cmake_policy(SET CMP0045 NEW)
+#cmake_policy(SET CMP0074 NEW)
+include_guard(GLOBAL)
 
 
 
@@ -182,6 +183,6 @@ endif()
 
 # resort the previous prefix path
 set(CMAKE_PREFIX_PATH ${PUSHED_CMAKE_PREFIX_PATH})
-cmake_policy(POP)
+#cmake_policy(POP)
 
 find_package(Threads REQUIRED)

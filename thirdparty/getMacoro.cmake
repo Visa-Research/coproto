@@ -30,14 +30,16 @@ if(NOT EXISTS ${CLONE_DIR})
     run(NAME "Cloning ${GIT_REPOSITORY}" CMD ${DOWNLOAD_CMD} WD ${COPROTO_THIRDPARTY_CLONE_DIR})
 endif()
 
-execute_process(
-    COMMAND ${CHECK_TAG_CMD}
-    WORKING_DIRECTORY ${CLONE_DIR}
-    RESULT_VARIABLE CHECK_TAG_REUSLT
-    COMMAND_ECHO STDOUT
-)
-
 if(GIT_TAG)
+
+    if(USE_GET_FETCH)
+        execute_process(
+            COMMAND ${GIT} fetch
+            WORKING_DIRECTORY ${CLONE_DIR}
+            COMMAND_ECHO STDOUT
+        )
+    endif()
+
     run(NAME "Checkout ${GIT_TAG} " CMD ${CHECKOUT_CMD}  WD ${CLONE_DIR})
 endif()
 
@@ -47,7 +49,7 @@ set(MACORO_CPP_VER ${COPROTO_CPP_VER})
 set(MACORO_PIC ${COPROTO_PIC})
 set(MACORO_ASAN ${COPROTO_ASAN})
 set(MACORO_THIRDPARTY_CLONE_DIR ${COPROTO_THIRDPARTY_CLONE_DIR})
-add_subdirectory(${CLONE_DIR})
+add_subdirectory(${CLONE_DIR} macoro)
 
 #install(CODE "
 #    if(NOT CMAKE_INSTALL_PREFIX STREQUAL \"${COPROTO_STAGE}\")
