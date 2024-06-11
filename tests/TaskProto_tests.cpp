@@ -37,7 +37,7 @@ namespace coproto
 			{
 
 				int recv = 0;
-				std::array<bool, 2> started = { false,false };
+				//std::array<bool, 2> started = { false,false };
 
 				auto task_proto = [&](Socket ss, bool send)->task<void>
 					{
@@ -46,7 +46,7 @@ namespace coproto
 						if (send)
 						{
 							std::cout << "task send start " << std::endl;
-							started[0] = true;
+							//started[0] = true;
 							cc = 42;
 							co_await ss.send(cc);
 							std::cout << "task send done" << std::endl;
@@ -54,8 +54,8 @@ namespace coproto
 						}
 						else
 						{
-							std::cout << "task recv start " << (size_t)&started[1] << std::endl;
-							started[1] = true;
+							std::cout << "task recv start "  << std::endl;
+							//started[1] = true;
 							co_await ss.recv(cc);
 							recv = cc;
 							std::cout << "task recv done" << std::endl;
@@ -65,7 +65,7 @@ namespace coproto
 				//auto tt = {{ task_proto(Socket{}, 0), task_proto(Socket{}, 0) }}
 				//    | macoro::when_all_ready()
 				//    | macoro::make_blocking();
-				std::cout << "calling eval "<< (size_t)&started[1] << std::endl;
+				std::cout << "calling eval " << std::endl;
 				auto r = eval(task_proto, type);
 				std::cout << "done eval " << std::endl;
 
