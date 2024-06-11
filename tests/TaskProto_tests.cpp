@@ -885,7 +885,7 @@ namespace coproto
 		{
 
 			bool hasEc = false;
-			u64 n = 5;
+			u64 n = 2;
 			auto proto = [&hasEc, n](Socket& s, bool party) -> task<void> {
 
 				if (party)
@@ -894,9 +894,23 @@ namespace coproto
 					co_await s.send(buff);
 					auto ec = co_await macoro::wrap(task_throwServer(s, n));
 
-					if (as_error_code(ec.error()) == code::uncaughtException)
-						hasEc = true;
+					if (ec.has_error())
+					{
 
+						auto error = ec.error();
+						auto code = as_error_code(error);
+
+						if (code == code::uncaughtException)
+							hasEc = true;
+						else
+						{
+							std::cout << " bad code " << code << " " << COPROTO_LOCATION<< std::endl;
+						}
+					}
+					else
+					{
+						std::cout << "no error"  <<COPROTO_LOCATION<< std::endl;
+					}
 					//ec = co_await send(buff).wrap();
 
 					//if(ec != code::ioError)
