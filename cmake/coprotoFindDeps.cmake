@@ -75,13 +75,9 @@ macro(FIND_MACORO)
     endif()
 
     find_package(macoro ${ARGS} COMPONENTS ${macoro_options})
-
 endmacro()
 
 if((COPROTO_FETCH_AUTO OR COPROTO_FETCH_MACORO) AND COPROTO_BUILD)
-    #if(NOT COPROTO_FETCH_MACORO)
-    #    FIND_MACORO(QUIET)
-    #endif()
     include("${CMAKE_CURRENT_LIST_DIR}/../thirdparty/getMacoro.cmake")
 else()
     FIND_MACORO(REQUIRED)
@@ -143,7 +139,7 @@ if(COPROTO_ENABLE_BOOST)
             option(Boost_USE_DEBUG_RUNTIME "boost debug runtime" OFF)
         endif()
         #set(Boost_DEBUG ON)  #<---------- Real life saver
-
+        
         find_package(Boost 1.84.0 COMPONENTS system thread regex ${ARGS} ${COPROTO_FIND_PACKAGE_OPTIONS})
     endmacro()
 
@@ -164,8 +160,8 @@ if(COPROTO_ENABLE_BOOST)
         message(FATAL_ERROR "Failed to find boost 1.84. When building coproto, add -DCOPROTO_FETCH_BOOST=ON or -DCOPROTO_FETCH_AUTO=ON to auto download.")
     endif()
 
-    message(STATUS "\n\nBoost_LIB: ${Boost_LIBRARIES}" )
-    message(STATUS "Boost_INC: ${Boost_INCLUDE_DIR}\n\n" )
+    message("\n\nBoost_LIB: ${Boost_LIBRARIES}" )
+    message("Boost_INC: ${Boost_INCLUDE_DIR}\n\n" )
 endif()
 
 
@@ -173,8 +169,6 @@ endif()
 ###########################################################################
 
 if(COPROTO_ENABLE_OPENSSL)
-    message("CMAKE_PREFIX_PATH=${CMAKE_PREFIX_PATH}")
-    message("OPENSSL_ROOT_DIR=${OPENSSL_ROOT_DIR}")
     find_package(OpenSSL REQUIRED)
     
     message("OPENSSL_INCLUDE_DIR=${OPENSSL_INCLUDE_DIR}")

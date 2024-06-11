@@ -18,7 +18,7 @@
     },
     {
       "name": "windows-default",
-      "displayName": "Windows x64 Debug",
+      "displayName": "Windows x64 Release",
       "description": "Target Windows with the Visual Studio development environment.",
       "generator": "Ninja",
       "binaryDir": "${sourceDir}/out/build/${presetName}",
@@ -27,9 +27,9 @@
         "strategy": "external"
       },
       "cacheVariables": {
-        "CMAKE_BUILD_TYPE": "Debug",
+        "CMAKE_BUILD_TYPE": "Release",
         "CMAKE_INSTALL_PREFIX": "${sourceDir}/out/install/${presetName}",
-        "CMAKE_PREFIX_PATH": "${sourceDir}/../.."
+        "COPROTO_HINT": "${sourceDir}/../.."
       },
       "vendor": { "microsoft.com/VisualStudioSettings/CMake/1.0": { "hostOS": [ "Windows" ] } }
     }

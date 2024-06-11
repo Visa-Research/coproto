@@ -2,7 +2,7 @@
 
 
 include("${CMAKE_CURRENT_LIST_DIR}/buildOptions.cmake")
+include("${CMAKE_CURRENT_LIST_DIR}/coprotoFindDeps.cmake")
 include("${CMAKE_CURRENT_LIST_DIR}/coprotoTargets.cmake")
 
 
-include("${CMAKE_CURRENT_LIST_DIR}/coprotoFindDeps.cmake")
