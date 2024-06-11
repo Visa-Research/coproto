@@ -30,7 +30,7 @@ jobs:
       # Runs a set of commands using the runners shell
       - name: build cpp20
         run: |
-          python3 build.py -D COPROTO_ENABLE_BOOST=OFF -D COPROTO_ENABLE_OPENSSL=OFF -DCOPROTO_ASAN=true  -DCMAKE_BUILD_TYPE=Debug -DCOPROTO_CPP_VER=20
+          python3 build.py -D COPROTO_ENABLE_BOOST=ON -D COPROTO_ENABLE_OPENSSL=ON -DCOPROTO_ASAN=true  -DCMAKE_BUILD_TYPE=Debug -DCOPROTO_CPP_VER=20
           
       - name: unit test cpp20
         run: |
@@ -146,7 +146,7 @@ jobs:
 
       - name: build library cpp20
         run: |
-          python3 build.py -G Ninja  -D COPROTO_ENABLE_BOOST=OFF -DCOPROTO_CPP_VER=20 -DMACORO_COMPILER_DEFINES=_DISABLE_CONSTEXPR_MUTEX_CONSTRUCTOR
+          python3 build.py -G Ninja  -D COPROTO_ENABLE_BOOST=ON -DCOPROTO_CPP_VER=20 -DMACORO_COMPILER_DEFINES=_DISABLE_CONSTEXPR_MUTEX_CONSTRUCTOR
       
       - name: unit test
         run: |
