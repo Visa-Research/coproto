@@ -459,7 +459,7 @@ namespace coproto
 		// we should return noop_coroutine. Otherwise we will return h which
 		// will resume the caller.
 		coroutine_handle<> c1 = macoro::noop_coroutine();
-		macoro::optional_stop_callback* r0 = nullptr;
+		//macoro::optional_stop_callback* r0 = nullptr;
 
 		{
 			std::unique_lock<std::mutex> lock(mSock->mMtx);
