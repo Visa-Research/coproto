@@ -75,6 +75,9 @@ macro(FIND_MACORO)
         set(macoro_options ${macoro_options} ${COPROTO_BUILD_TYPE} )
     endif()
 
+    if(NOT COPROTO_FIND_QUIETLY)
+        message("find_package(macoro ${ARGS} COMPONENTS ${macoro_options}) @ ${CMAKE_CURRENT_LIST_FILE}")
+    endif()
     find_package(macoro ${ARGS} COMPONENTS ${macoro_options})
 endmacro()
 
