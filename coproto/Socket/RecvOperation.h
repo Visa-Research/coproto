@@ -36,7 +36,7 @@ namespace coproto::internal
 		std::vector<std::shared_ptr<FlushToken>> mFlushes;
 	public:
 
-		u64 mIndex;
+		//u64 mIndex;
 
 		RecvOperation(
 			RecvBuffer& r,
@@ -45,7 +45,7 @@ namespace coproto::internal
 			: mSocketFork(&*s)
 			, mCH(ch)
 			, mRecvBuffer(r)
-			, mIndex(recvIndex(mSocketFork)++)
+			//, mIndex(recvIndex(mSocketFork)++)
 		{}
 
 

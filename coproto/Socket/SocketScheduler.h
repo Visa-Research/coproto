@@ -657,6 +657,8 @@ namespace coproto
 		{
 			auto& mLogging = mSched.mLogging;
 			auto& mRecvLog = mSched.mRecvLog;
+			(void)mLogging;
+			(void)mRecvLog;
 
 			ExecutionQueue::Handle queue;
 			{
@@ -776,6 +778,9 @@ namespace coproto
 					{
 						auto& mLogging = mSched.mLogging;
 						auto& mRecvLog = mSched.mRecvLog;
+						(void)mLogging;
+						(void)mRecvLog;
+
 						RECV_LOG("anyRecvOp::idle");
 						mSched.mRecvStatus = SockScheduler::Status::Idle;
 						mSched.mAnyRecvOp = this;
@@ -865,7 +870,6 @@ namespace coproto
 				}
 
 				op = opRes.value();
-				SocketFork& fork = op->fork();
 				span<u8> buffer = op->asSpan(header.mSize);
 
 				if (buffer.size() != header.mSize)

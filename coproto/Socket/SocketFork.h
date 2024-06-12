@@ -32,7 +32,7 @@ namespace coproto::internal
 		// the local and remote is that is used when sending data.
 		u32 mLocalId = -1, mRemoteId = -1;
 
-		u64 mRecvIdx = 0;
+		//u64 mRecvIdx = 0;
 
 		// a flag indicating that this fork has send the local id
 		// to the remote party. At the start, the remote party does
@@ -118,11 +118,11 @@ namespace coproto::internal
 		}
 	};
 	
-	inline
-		u64& recvIndex(SocketFork* s)
-	{
-		return s->mRecvIdx;
-	}
+	//inline
+	//	u64& recvIndex(SocketFork* s)
+	//{
+	//	return s->mRecvIdx;
+	//}
 
 	inline void SendOperation::completeOn(ExecutionQueue::Handle& queue, Lock& l)
 	{

@@ -69,10 +69,10 @@ namespace coproto::internal
 			SocketForkIter ss,
 			coroutine_handle<void> ch,
 			Buffer&& s)
-			: mSocketFork(ss)
-			, mCH(ch)
+			: mCH(ch)
 			, mStorage(std::forward<Buffer>(s))
 			, mSendBuffer(mStorage->asSpan())
+			, mSocketFork(ss)
 		{}
 
 		template<typename Fn>
