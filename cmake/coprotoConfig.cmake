@@ -11,6 +11,7 @@ endif()
 if(NOT COPROTO_FIND_QUIETLY)
     message("coprotoConfig.cmake: ${CMAKE_CURRENT_LIST_DIR}")
 endif()
+set(COPROTO_CONFIG_MESSAGE_DONE ON)
 
 #used to find macoro
 set(PUSHED_CMAKE_PREFIX_PATH ${CMAKE_PREFIX_PATH})
