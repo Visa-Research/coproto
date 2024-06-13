@@ -33,6 +33,7 @@ void coproto::tests::LocalAsyncSocket_sendRecv_test()
 	COPROTO_ASSERT(a0.await_ready() == false);
 	auto t0 = task_();
 	auto h0 = a0.await_suspend(t0.handle());
+	(void)h0;
 
 	COPROTO_ASSERT(h0 != t0.handle());
 	COPROTO_ASSERT(count == 0);
