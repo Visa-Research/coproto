@@ -87,7 +87,7 @@ namespace coproto
 		{
 
 			u64 trials = 100;
-			u64 numOps = 100;
+			i64 numOps = 100;
 
 			macoro::thread_pool ex[4];
 			auto work0 = ex[0].make_work();
@@ -245,7 +245,7 @@ namespace coproto
 				auto a0 = s[0].mSock->recv(sb, token);
 				std::pair<error_code, u64> res;
 				//auto a1 = s[1].mSock->recv(rb);
-				auto b = std::chrono::system_clock::now();
+				//auto b = std::chrono::system_clock::now();
 
 				auto task_ = [&](bool sender) -> task<void> {
 
@@ -304,7 +304,7 @@ namespace coproto
 			for (u64 tt = 0; tt < trials; ++tt)
 			{
 				std::array<BufferingSocket, 2> s;
-				using Log = std::vector<std::pair<const char*, std::thread::id>>;
+				//using Log = std::vector<std::pair<const char*, std::thread::id>>;
 
 				std::vector<std::array<macoro::stop_source, 4>> srcs(numOps + 1);
 				std::vector< std::array<macoro::stop_token, 4>> tkns(numOps + 1);
@@ -415,7 +415,7 @@ namespace coproto
 					});
 
 
-				auto t0 = macoro::sync_wait();
+				//auto t0 = macoro::sync_wait();
 
 				auto r = macoro::sync_wait(macoro::when_all_ready(
 					f1(0), f1(1), f1(2), f1(3)));
@@ -451,7 +451,7 @@ namespace coproto
 		{
 
 			u64 trials = 100;
-			u64 numOps = 20;
+			//u64 numOps = 20;
 
 			macoro::thread_pool ex[4];
 			auto work0 = ex[0].make_work();

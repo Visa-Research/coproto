@@ -28,7 +28,6 @@ namespace coproto
 		void task14_nestedProtocol_ErrorCode_Test();
 		void task14_asyncProtocol_Test();
 		void task14_asyncProtocol_Throw_Test();
-		void task14_endOfRound_Test();
 		void task14_errorSocket_Test();
 		void task14_cancel_send_test();
 		void task14_cancel_recv_test();

@@ -949,7 +949,7 @@ namespace coproto
 		{
 			BufferingSocket sock;
 
-			auto sid = SessionID::root();
+			//auto sid = SessionID::root();
 			std::vector<u8> buffer;
 			// <size>
 			push(u32(1), buffer);
@@ -976,7 +976,7 @@ namespace coproto
 				task.get();
 				throw COPROTO_RTE;
 			}
-			catch (std::system_error e)
+			catch (std::system_error& e)
 			{
 				if (e.code() != code::badCoprotoMessageHeader)
 					throw;
@@ -1026,7 +1026,7 @@ namespace coproto
 				task.get();
 				throw COPROTO_RTE;
 			}
-			catch (std::system_error e)
+			catch (std::system_error& e)
 			{
 				if (e.code() != code::badCoprotoMessageHeader)
 					throw;
@@ -1049,7 +1049,7 @@ namespace coproto
 
 			BufferingSocket sock;
 
-			auto sid = SessionID::root();
+			//auto sid = SessionID::root();
 			std::vector<u8> buffer;
 			// <size>
 			push(u32(0), buffer);
@@ -1087,7 +1087,7 @@ namespace coproto
 				task.get();
 				throw COPROTO_RTE;
 			}
-			catch (std::system_error e)
+			catch (std::system_error& e)
 			{
 				if (e.code() != code::badCoprotoMessageHeader)
 					throw;

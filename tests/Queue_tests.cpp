@@ -35,7 +35,7 @@ namespace coproto
 
 			auto check = [&]()
 				{
-					auto b = lctor != qctor && ldtor != qdtor || qInt.size() != lInt.size();
+					auto b = (lctor != qctor) && (ldtor != qdtor) || (qInt.size() != lInt.size());
 					if (b)
 						return true;
 

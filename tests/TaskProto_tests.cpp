@@ -582,6 +582,7 @@ namespace coproto
 						else
 						{
 							char c = co_await s.recv<char>();
+							(void)c;
 						}
 					}
 						MACORO_CATCH(exPtr)
@@ -961,7 +962,7 @@ namespace coproto
 
 				auto name = std::string{};
 				auto buff = std::vector<u64>(10);
-				auto i = u64{};
+				//auto i = u64{};
 
 				//co_await macoro::transfer_to(ex);
 
@@ -1067,63 +1068,6 @@ namespace coproto
 
 				try { std::get<1>(r).result(); }
 				catch (ThrowServerException&) {}
-			}
-		}
-
-		void task_endOfRound_Test()
-		{
-			return;
-			u64 done = 0;
-
-			auto proto = [&done](Socket& s, bool party, macoro::thread_pool& sched) -> task<void> {
-
-				if (party)
-				{
-					co_await s.send(42);
-					co_await sched.post();
-					int i;
-					for (u64 j = 0; j < 10; ++j)
-					{
-						co_await s.recv(i);
-						co_await s.send(42);
-						co_await sched.post();
-					}
-				}
-				else
-				{
-					int i;
-					for (u64 j = 0; j < 10; ++j)
-					{
-						co_await s.recv(i);
-						co_await s.send(42);
-						co_await sched.post();
-					}
-
-					co_await s.recv(i);
-				}
-				++done;
-				};
-
-
-			{
-				//STExecutor ex;
-				//auto s = RoundFunctionSock::makePair();
-				//auto t0 = proto(s[0], 0, ex) | macoro::start_on(ex);
-				//auto t1 = proto(s[1], 1, ex) | macoro::start_on(ex);
-
-				//while (ex.mQueue_.size() ||
-				//	s[0].mImpl->mInbound.size() ||
-				//	s[1].mImpl->mInbound.size())
-				//{
-				//	ex.run();
-				//	s[1].setInbound(s[0].getOutbound());
-				//	s[0].setInbound(s[1].getOutbound());
-				//}
-
-				//auto breakFn = [&]() { return ex.mQueue_.size() == 0; };
-
-				//if (done != 2)
-				//	throw COPROTO_RTE;
 			}
 		}
 
@@ -1323,7 +1267,6 @@ namespace coproto
 					co_await s.send(i, token);
 				};
 
-			for (auto t : types)
 			{
 
 				auto s = LocalAsyncSocket::makePair();
@@ -1349,7 +1292,6 @@ namespace coproto
 					co_await s.recv(i, token);
 				};
 
-			for (auto t : types)
 			{
 				auto s = LocalAsyncSocket::makePair();
 				auto b = macoro::make_blocking(proto(s[0], 0));
@@ -1372,7 +1314,6 @@ namespace coproto
 
 				};
 
-			for (auto t : types)
 			{
 				auto socks = LocalAsyncSocket::makePair();
 				auto b = macoro::sync_wait(macoro::when_all_ready(proto(std::move(socks[0]), 0), proto(std::move(socks[1]), 1)));

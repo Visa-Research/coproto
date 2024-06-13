@@ -131,7 +131,7 @@ void coproto::tests::LocalAsyncSocket_cancellation_test()
 	{
 		auto s = LocalAsyncSocket::makePair();
 
-		using Log = std::vector<std::pair<const char*, std::thread::id>>;
+		//using Log = std::vector<std::pair<const char*, std::thread::id>>;
 
 		std::vector<std::array<macoro::stop_source, 4>> srcs(numOps + 1);
 		std::vector< std::array<macoro::stop_token, 4>> tkns(numOps + 1);
@@ -266,7 +266,7 @@ void coproto::tests::LocalAsyncSocket_close_test()
 			proms[2].get_future(),
 			proms[3].get_future()
 		};
-		using Log = std::vector<std::pair<const char*, std::thread::id>>;
+		//using Log = std::vector<std::pair<const char*, std::thread::id>>;
 
 		auto f1 = [&](u64 idx) -> task<> {
 			//MC_BEGIN(task<void>, &ex, idx, &proms, &fut, &s,tt,

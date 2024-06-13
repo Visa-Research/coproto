@@ -894,7 +894,7 @@ namespace {
 void cpp14Tutorial()
 {
     echoExample();
-    //macroExample();
+    moveSendExample();
     resizeExample();
     errorExample();
     wrapExample();

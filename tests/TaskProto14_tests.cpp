@@ -942,67 +942,6 @@ namespace coproto
 			}
 		}
 
-		void task14_endOfRound_Test()
-		{
-			return;
-			u64 done = 0;
-
-			auto proto = [&done](Socket& s, bool party, macoro::thread_pool& sched) -> task<void> {
-
-				MC_BEGIN(task<>, =, &done, &sched
-					, i = int{}
-					, j = u64{}
-				);
-				if (party)
-				{
-					MC_AWAIT(s.send(42));
-					MC_AWAIT(sched.post());
-					for (j = 0; j < 10; ++j)
-					{
-						MC_AWAIT(s.recv(i));
-						MC_AWAIT(s.send(42));
-						MC_AWAIT(sched.post());
-					}
-				}
-				else
-				{
-					for (j = 0; j < 10; ++j)
-					{
-						MC_AWAIT(s.recv(i));
-						MC_AWAIT(s.send(42));
-						MC_AWAIT(sched.post());
-					}
-
-					MC_AWAIT(s.recv(i));
-				}
-				++done;
-
-				MC_END();
-				};
-
-
-			{
-				//STExecutor ex;
-				//auto s = RoundFunctionSock::makePair();
-				//auto t0 = proto(s[0], 0, ex) | macoro::start_on(ex);
-				//auto t1 = proto(s[1], 1, ex) | macoro::start_on(ex);
-
-				//while (ex.mQueue_.size() ||
-				//	s[0].mImpl->mInbound.size() ||
-				//	s[1].mImpl->mInbound.size())
-				//{
-				//	ex.run();
-				//	s[1].setInbound(s[0].getOutbound());
-				//	s[0].setInbound(s[1].getOutbound());
-				//}
-
-				//auto breakFn = [&]() { return ex.mQueue_.size() == 0; };
-
-				//if (done != 2)
-				//	throw COPROTO_RTE;
-			}
-		}
-
 		void task14_errorSocket_Test()
 		{
 			//#define MULTI
@@ -1178,7 +1117,6 @@ namespace coproto
 					MC_END();
 				};
 
-			for (auto t : types)
 			{
 
 				auto s = LocalAsyncSocket::makePair();
@@ -1205,7 +1143,6 @@ namespace coproto
 					MC_END();
 				};
 
-			for (auto t : types)
 			{
 				auto s = LocalAsyncSocket::makePair();
 				auto b = macoro::make_blocking(proto(s[0], 0));
