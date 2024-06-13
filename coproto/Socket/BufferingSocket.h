@@ -152,28 +152,15 @@ namespace coproto
 			Buffer(const Buffer&) = delete;
 			Buffer(Buffer&&) = delete;
 
-//			Buffer(const Buffer&) = default;
-			//Buffer(Buffer&& o) 
-			//	: mFront(std::exchange(o.mFront, 0))
-			//	, mSize(std::exchange(o.mSize, 0))
-			//	, mData(std::move(o.mData))
-			//{};
-
-			//Buffer& operator=(Buffer&& o)
-			//{
-			//	mFront = (std::exchange(o.mFront, 0));
-			//	mSize  = (std::exchange(o.mSize, 0)) ;
-			//	mData  = (std::move(o.mData))		 ;
-			//	return *this;
-			//}
-
 			u64 size() {
+#ifndef NDEBUG
 				auto ss = 0ull;
 				for (auto& b : mData)
 					ss += b.size();
 
 				ss -= mFront;
 				COPROTO_ASSERT(ss == mSize);
+#endif
 				return mSize;
 			}
 

@@ -998,7 +998,7 @@ namespace coproto
 
 			BufferingSocket sock;
 
-			auto sid = SessionID::root();
+			
 			std::vector<u8> buffer;
 			// <size>
 			push(u32(0), buffer);

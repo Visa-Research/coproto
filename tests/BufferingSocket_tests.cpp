@@ -471,7 +471,7 @@ namespace coproto
 				auto promise = std::promise<void>{};
 				auto fut = promise.get_future().share();
 
-				using Log = std::vector<std::pair<const char*, std::thread::id>>;
+				//using Log = std::vector<std::pair<const char*, std::thread::id>>;
 
 				auto f1 = [&](u64 idx) {
 					MC_BEGIN(task<void>, idx, &fut, &s, tt, &ex,

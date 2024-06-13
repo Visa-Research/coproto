@@ -196,7 +196,7 @@ namespace coproto
 		// It is used when the thing being received into is an rvalue.
 		// We will store the container locally in the awaiter.
 		template<typename Container, bool allowResize>
-		class MoveRecvAwaiter : public RecvAwaiterBase<MoveRecvAwaiter<Container, allowResize>>
+		class MoveRecvAwaiter final : public RecvAwaiterBase<MoveRecvAwaiter<Container, allowResize>>
 		{
 		public:
 			using Base = RecvAwaiterBase<MoveRecvAwaiter<Container, allowResize>>;
@@ -234,7 +234,7 @@ namespace coproto
 		};
 
 		template<typename Container, bool allowResize = true>
-		class RefRecvAwaiter : public RecvAwaiterBase<RefRecvAwaiter<Container, allowResize>>
+		class RefRecvAwaiter final : public RecvAwaiterBase<RefRecvAwaiter<Container, allowResize>>
 		{
 		public:
 			using Base = RecvAwaiterBase<RefRecvAwaiter<Container, allowResize>>;
@@ -264,7 +264,7 @@ namespace coproto
 
 
 		template<typename Container>
-		class RefSendAwaiter : public SendAwaiterBase<RefSendAwaiter<Container>>
+		class RefSendAwaiter final : public SendAwaiterBase<RefSendAwaiter<Container>>
 		{
 		public:
 			using Base = SendAwaiterBase<RefSendAwaiter<Container>>;
@@ -304,7 +304,7 @@ namespace coproto
 
 
 		template<typename Container>
-		class MoveSendAwaiter : public SendAwaiterBase<MoveSendAwaiter<Container>>
+		class MoveSendAwaiter final : public SendAwaiterBase<MoveSendAwaiter<Container>>
 		{
 		public:
 			using Base = SendAwaiterBase<MoveSendAwaiter<Container>>;
@@ -348,7 +348,7 @@ namespace coproto
 		};
 
 
-		class Flush : macoro::basic_traceable
+		class Flush final : macoro::basic_traceable
 		{
 		public:
 			SockScheduler* mSock;
@@ -376,37 +376,6 @@ namespace coproto
 #endif
 			void await_resume() {};
 		};
-
-
-//#ifdef COPROTO_CPP20
-//		template<typename promise>
-//		inline std::coroutine_handle<> SendAwaiterBase::await_suspend(std::coroutine_handle<promise> h, std::source_location loc)
-//		{
-//			set_parent(macoro::detail::get_traceable(h), loc);
-//			return mSock->send(mId, getBuffer(), coroutine_handle<>(h), std::move(mToken)).std_cast();
-//		}
-//#endif
-//		template<typename promise>
-//		inline coroutine_handle<> SendAwaiterBase::await_suspend(coroutine_handle<promise> h, std::source_location loc)
-//		{
-//			set_parent(macoro::detail::get_traceable(h), loc);
-//			return mSock->send(mId, getBuffer(), h, std::move(mToken));
-//		}
-//#ifdef COPROTO_CPP20
-//		template<typename promise>
-//		std::coroutine_handle<> RecvAwaiterBase::await_suspend(std::coroutine_handle<promise> h, std::source_location loc)
-//		{
-//			set_parent(macoro::detail::get_traceable(h), loc);
-//
-//			return mSock->recv(mId, this, coroutine_handle<>(h), std::move(mToken)).std_cast();
-//		}
-//#endif
-//		template<typename promise>
-//		inline coroutine_handle<> RecvAwaiterBase::await_suspend(coroutine_handle<promise> h, std::source_location loc)
-//		{
-//			set_parent(macoro::detail::get_traceable(h), loc);
-//			return mSock->recv(mId, this, h, std::move(mToken));
-//		}
 
 	}
 }

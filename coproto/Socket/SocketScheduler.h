@@ -802,7 +802,7 @@ namespace coproto
 		template<typename Sock>
 		macoro::task<void> SockScheduler::receiveDataTask(Sock* sock)
 		{
-			auto checkRecv = [this](error_code ec, u64 bytesTransmitted, u64 bufferSize) {
+			auto checkRecv = [](error_code ec, u64 bytesTransmitted, u64 bufferSize) {
 				if (!ec && bytesTransmitted != bufferSize)
 					ec = code::ioError;
 				return ec;
@@ -988,7 +988,7 @@ namespace coproto
 		template<typename Sock>
 		macoro::task<void> SockScheduler::makeSendTask(Sock* sock)
 		{
-			auto checkSend = [this](error_code ec, u64 bytesTransmitted, u64 bufferSize) {
+			auto checkSend = [](error_code ec, u64 bytesTransmitted, u64 bufferSize) {
 				if (!ec && bytesTransmitted != bufferSize)
 					ec = code::ioError;
 				return ec;

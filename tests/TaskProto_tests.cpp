@@ -547,7 +547,7 @@ namespace coproto
 
 			for (auto t : types)
 			{
-				auto proto = [t](Socket& s, bool party) -> task<void>
+				auto proto = [](Socket& s, bool party) -> task<void>
 					{
 						int i = 0;
 						std::vector<int> v(10);
@@ -1192,7 +1192,7 @@ namespace coproto
 								return code::DEBUG_ERROR;
 							return code::success;
 							};
-						s[1].mSock->errFn() = [&idx, i, &s]()->error_code {
+						s[1].mSock->errFn() = [&idx, i]()->error_code {
 							if (idx++ == i)
 							{
 								return code::DEBUG_ERROR;
