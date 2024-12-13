@@ -149,12 +149,8 @@ if(COPROTO_ENABLE_BOOST)
 
     
     if((COPROTO_FETCH_AUTO OR COPROTO_FETCH_BOOST) AND COPROTO_BUILD)
-        if(NOT COPROTO_FETCH_BOOST)
-            FIND_BOOST(QUIET)
-        endif()
-        
+        FIND_BOOST(QUIET)
         include("${CMAKE_CURRENT_LIST_DIR}/../thirdparty/getBoost.cmake")
-
     endif()
 
 
