@@ -204,10 +204,10 @@ namespace coproto
 					: mSock(ss)
 					, mData(dd)
 					, mType(send ? Type::send : Type::recv)
-					, mToken(t)
 					, mCancellationRequested(false)
 					, mSynchronousFlag(false)
 					, mActiveCount()
+					, mToken(t)
 #ifdef COPROTO_ASIO_LOG
 					, mLogState(ss->mState)
 					, mIdx(idx)
@@ -879,8 +879,8 @@ namespace coproto
 		AsioConnect(const AsioConnect&) = delete;
 		AsioConnect(AsioConnect&& a)
 			: mEc(a.mEc)
-			, mIoc(a.mIoc)
 			, mSocket(std::move(a.mSocket))
+			, mIoc(a.mIoc)
 			, mEndpoint(std::move(a.mEndpoint))
 			, mToken(std::move(a.mToken))
 			, mCancellationRequested(0)

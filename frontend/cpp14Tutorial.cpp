@@ -12,6 +12,12 @@
 using namespace coproto;
 namespace {
 
+    template<typename R>
+    R&& move(R&&r)
+    {
+        return std::move(r);
+    }
+
     ///////////////////////////////////////////////////
     //             Echo Server Example
     //-------------------------------------------------
@@ -550,7 +556,7 @@ namespace {
         for (u64 i = 0; i < msg.size(); ++i)
             msg[i] = 'a' + i;
 
-        MC_BEGIN(task<>,msg, t, sock);
+        MC_BEGIN(task<>,msg, sock);
 
         MC_AWAIT(sock.send(msg));
         MC_AWAIT(sock.recv(msg));
@@ -804,8 +810,8 @@ namespace {
             &s,
             tp0 = macoro::thread_pool{},
             tp1 = macoro::thread_pool{},
-            w0 = std::move(macoro::thread_pool::work{}),
-            w1 = std::move(macoro::thread_pool::work{}),
+            w0 = move(macoro::thread_pool::work{}),
+            w1 = move(macoro::thread_pool::work{}),
             s0 = Socket{},
             s1 = Socket{}
         );

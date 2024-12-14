@@ -279,7 +279,7 @@ namespace coproto
 				auto a0 = s[0].mSock->send(sb, token);
 				std::pair<error_code, u64> res;
 				//auto a1 = s[1].mSock->recv(rb);
-				auto b = std::chrono::system_clock::now();
+				// auto b = std::chrono::system_clock::now();
 				auto task_ = [&](bool sender) -> task<void> {
 
 					MC_BEGIN(task<>, &, sender);
@@ -320,7 +320,7 @@ namespace coproto
 				auto a0 = s[0].mSock->recv(sb, token);
 				std::pair<error_code, u64> res;
 				//auto a1 = s[1].mSock->recv(rb);
-				auto b = std::chrono::system_clock::now();
+				// auto b = std::chrono::system_clock::now();
 
 				auto task_ = [&](bool sender) -> task<void> {
 
@@ -397,7 +397,7 @@ namespace coproto
 
 				auto f1 = [&](u64 idx) {
 					MC_BEGIN(task<void>, idx, &numOps, &s, &srcs, &tkns, &buffers,
-						v = u64{},
+						// v = u64{},
 						i = i64{},
 						buffer = span<u8>{},
 						r = std::pair<error_code, u64>{});
@@ -555,7 +555,7 @@ namespace coproto
 		{
 
 			u64 trials = 100;
-			u64 numOps = 20;
+			// u64 numOps = 20;
 			boost::asio::io_context ioc;
 			optional<boost::asio::io_context::work> w(ioc);
 

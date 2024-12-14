@@ -233,7 +233,6 @@ namespace {
     // an EvalResult which contains the assoicated error.
     task<> errorServer(Socket& sock)
     {
-        u64 i = 0;
         while (true)
         {
             bool doThrow;
@@ -249,7 +248,6 @@ namespace {
 
             co_await sock.send(doThrow);
 
-            ++i;
         }
     }
 

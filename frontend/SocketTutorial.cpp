@@ -277,7 +277,7 @@ namespace {
 		if (mToken.stop_possible())
 		{
 			// if so then register the cancellation callback.
-			mReg.emplace(mToken, [this] {
+			mReg.emplace(mToken, [] {
 				// this will be called if a cancellation has been requested.
 				// You should somehow cancel the operation here. Alternatively,
 				// if your socket does not support cancellation then you can 

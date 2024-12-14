@@ -273,7 +273,7 @@ namespace coproto
 
 			auto proto = [](Socket& s, bool party) -> task<void> {
 
-				MC_BEGIN(task<>, s, party
+				MC_BEGIN(task<>, s
 					, buff = std::vector<u64>{}
 				);
 				MC_AWAIT(s.send(buff));
@@ -310,7 +310,7 @@ namespace coproto
 
 			auto proto = [](Socket& s, bool party) -> task<void> {
 
-				MC_BEGIN(task<>, s, party
+				MC_BEGIN(task<>, s
 					, buff = std::vector<u64>{}
 					, ec = macoro::result<void>{}
 				);
@@ -429,7 +429,7 @@ namespace coproto
 		{
 			for (auto t : types)
 			{
-				auto proto = [t](Socket& s, bool party) -> task<void>
+				auto proto = [](Socket& s, bool party) -> task<void>
 					{
 						MC_BEGIN(task<>, =
 							, i = int{ 0 }

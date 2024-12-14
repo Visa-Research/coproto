@@ -105,7 +105,7 @@ namespace coproto
 				std::array<BufferingSocket, 2> s;
 
 				auto f1 = [&](u64 idx) {
-					MC_BEGIN(task<void>, idx, &numOps, &s, &ex,
+					MC_BEGIN(task<void>, idx, &numOps, &s,  
 						v = i64{},
 						i = i64{},
 						buffer = span<u8>{},
