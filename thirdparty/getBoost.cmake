@@ -5,7 +5,7 @@ set(BOOST_NAME    "boost_1_${BOOST_VERSION}_0")
 set(CLONE_DIR     "${COPROTO_THIRDPARTY_CLONE_DIR}/${BOOST_NAME}")
 set(ARCH_PATH     "${COPROTO_THIRDPARTY_CLONE_DIR}/${BOOST_NAME}.tar.bz2")
 set(INSTALL_DIR   ${COPROTO_STAGE})
-set(URL           "https://boostorg.jfrog.io/artifactory/main/release/1.${BOOST_VERSION}.0/source/boost_1_${BOOST_VERSION}_0.tar.bz2")
+set(URL           "https://archives.boost.io/release/1.${BOOST_VERSION}.0/source/boost_1_${BOOST_VERSION}_0.tar.bz2")
 set(LOG_FILE      "${CMAKE_CURRENT_LIST_DIR}/log-boost.txt")
 set(SHA256_VAL    1bed88e40401b2cb7a1f76d4bab499e352fa4d0c5f31c0dbae64e24d34d7513b)
 
